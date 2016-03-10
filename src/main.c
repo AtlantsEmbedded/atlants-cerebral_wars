@@ -12,7 +12,7 @@
 #include <linux/spi/spidev.h>
 
 
-#define NB_LEDS 149   
+#define NB_LEDS 157   
 #define PARTICLE_LENGTH 4
 #define RED 0
 #define GREEN 1
