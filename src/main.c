@@ -1,220 +1,252 @@
-/**
- * @file main.c
- * @author Frederic Simard (fred.simard@atlantsembedded.com)
- * @date 6/11/2015
-*/
 
+
+#include <stdint.h>
+#include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
 #include <string.h>
-#include <pthread.h>
-#include <time.h>
-#include <stdint.h>
-#include <ctype.h>
-#include <math.h>
-#include <signal.h>
-
-#include <wiringPi.h>
-#include <softTone.h>
-#include "app_signal.h"
-#include "feature_processing.h"
-#include "ipc_status_comm.h"
-#include "feature_input.h"
-#include "xml.h"
-
-#define NB_PLAYERS 2
-#define PLAYER_1 0
-#define PLAYER_2 0
-
-static inline void print_banner();
-inline char *which_config(int argc, char **argv);
-char task_running = 0x01;
+#include <getopt.h>
+#include <fcntl.h>
+#include <sys/ioctl.h>
+#include <linux/types.h>
+#include <linux/spi/spidev.h>
 
 
-/*threads that trains and obtain a sample*/
-void* train_player(void* param);
-void* get_sample(void* param);
+#define NB_LEDS 149   
+#define PARTICLE_LENGTH 4
+#define RED 0
+#define GREEN 1
+#define BLUE 2
 
-#define CONFIG_NAME "config/cerebralwars_app_config.xml"
+#define BEGIN 0
+#define END 1
+
+#define RED_UPDATE_PERIOD 4
+#define BLUE_UPDATE_PERIOD 2
+
+typedef struct pixel_s{
+	
+	uint8_t red;
+	uint8_t green;
+	uint8_t blue;
+}pixel_t;
+
+
+const unsigned char particle_kernel[PARTICLE_LENGTH] = {0, 25, 50, 150};
+const unsigned char explosion_kernel[8] = {0, 10, 25, 100, 100, 25, 10, 0};
+const float explosion_animation_kernel[8] = {0.1, 0.3, 0.5, 0.7, 0.7, 0.5, 0.3, 0.1};
+
 
 /**
- * main(int argc, char *argv[])
- * @brief main function
- * @param argc
- * @param argv
- * @return 0 for success, -1 for error
+ * main(int argc, char **argv)
+ * @brief test the mindbx_lib
  */
-int main(int argc, char *argv[])
-{	
-	/*freq index*/
-	double cpu_time_used;
-	double running_avg = 0;
-	double adjusted_sample = 0;
-	clock_t start, end;
-	feature_input_t feature_input[NB_PLAYERS];
-	ipc_comm_t ipc_comm[NB_PLAYERS];
-	feat_proc_t feature_proc[NB_PLAYERS];
+int main(int argc, char **argv){
 	
-	appconfig_t* app_config;
-	
-	/*Set up ctrl c signal handler*/
-	(void)signal(SIGINT, ctrl_c_handler);
 
-	/*Show program banner on stdout*/
-	print_banner();
+	/*define buffer*/
+	pixel_t buffer[NB_LEDS];
+	int i;
+	int spi_driver;
+	unsigned char particle_counter[2] = {0x00,0x00};
+	unsigned char particle_color[2] = {0x00,0x00};
+	static uint32_t speed = 1000000;
+	int explosion_location = NB_LEDS/2;
+	int address;
+	int red_update_counter = RED_UPDATE_PERIOD;
+	int blue_update_counter = BLUE_UPDATE_PERIOD;
 	
-	/*read the xml*/
-	app_config = xml_initialize(which_config(argc, argv));
+	spi_driver = open("/dev/spidev0.0",O_RDWR);
+	ioctl(spi_driver, SPI_IOC_WR_MAX_SPEED_HZ, &speed);	
 	
-	/*setup the cerebral wars*/
-	/*
-	 * 
-	 * set in pairing mode
-	 */
+	memset(buffer,0,sizeof(pixel_t)*NB_LEDS);
 	
-	/*For each player*/
-	/*configure the feature input*/
-	/*configure the inter-process communication channel*/
-	feature_input[PLAYER_1].shm_key=7804;
-	feature_input[PLAYER_1].sem_key=1234;
-	init_feature_input(app_config->feature_source, &(feature_input[PLAYER_1]));
-	ipc_comm[PLAYER_1].sem_key=1234;
-	ipc_comm_init(&(ipc_comm[PLAYER_1]));
-	
-	feature_input[PLAYER_2].shm_key=4786; //to be completed
-	feature_input[PLAYER_2].sem_key=1728; //to be completed
-	init_feature_input(app_config->feature_source, &(feature_input[PLAYER_2]));
-	ipc_comm[PLAYER_2].sem_key=1728; //to be completed
-	ipc_comm_init(&(ipc_comm[PLAYER_2]));
-	
-	/*if required, wait for eeg hardware to be present*/
-	if(app_config->eeg_hardware_required){
-		if(!ipc_wait_for_harware(&(ipc_comm[PLAYER_1]))){
-			exit(0);
+	while(1){
+		
+		if(red_update_counter<=0){
+			red_update_counter = RED_UPDATE_PERIOD;
+			
+			/*from the start to explosion*/
+			for(i=explosion_location;i>=0;i--){
+				buffer[i+1].red = buffer[i].red;
+				buffer[i+1].green = buffer[i].green;
+				buffer[i+1].blue = buffer[i].blue;
+			}
+			
+			/*check if a particle is being placed at the beginning*/
+			if(particle_counter[BEGIN]>0){
+				
+				switch(particle_color[BEGIN]){
+					
+					case RED:
+						buffer[0].red = particle_kernel[particle_counter[BEGIN]];
+						buffer[0].green = 0;
+						buffer[0].blue = 0;
+						break;
+					case GREEN:
+						buffer[0].red = 0;
+						buffer[0].green = particle_kernel[particle_counter[BEGIN]];
+						buffer[0].blue = 0;
+						break;
+					case BLUE:
+						buffer[0].red = 0;
+						buffer[0].green = 0;
+						buffer[0].blue = particle_kernel[particle_counter[BEGIN]];
+						break;
+				
+				}
+				particle_counter[BEGIN]--;
+			}else{
+		
+				buffer[0].red = 0;
+				buffer[0].green = 0;
+				buffer[0].blue = 0;
+				
+				/*else roll a dice to determine if a new particule needs to be spawned*/
+				if(((float)rand()/(float)RAND_MAX)>0.66){
+					particle_counter[BEGIN] = (PARTICLE_LENGTH-1);
+					particle_color[BEGIN] = BLUE;
+					
+				}
+			}	
+		}else{
+			red_update_counter--;
 		}
-		if(!ipc_wait_for_harware(&(ipc_comm[PLAYER_2]))){
-			exit(0);
+		
+		
+		if(blue_update_counter<=0){
+			blue_update_counter = BLUE_UPDATE_PERIOD;
+			
+			/*from the end to explosion*/
+			/*roll back by bringing encountered values forward*/
+			for(i=explosion_location;i<NB_LEDS;i++){
+				buffer[i-1].red = buffer[i].red;
+				buffer[i-1].green = buffer[i].green;
+				buffer[i-1].blue = buffer[i].blue;
+			}
+			
+			
+			/*check if a particle is being placed at the end*/
+			if(particle_counter[END]>0){
+				
+				switch(particle_color[END]){
+					
+					case RED:
+						buffer[NB_LEDS-1].red = particle_kernel[particle_counter[END]];
+						buffer[NB_LEDS-1].green = 0;
+						buffer[NB_LEDS-1].blue = 0;
+						break;
+					case GREEN:
+						buffer[NB_LEDS-1].red = 0;
+						buffer[NB_LEDS-1].green = particle_kernel[particle_counter[END]];
+						buffer[NB_LEDS-1].blue = 0;
+						break;
+					case BLUE:
+						buffer[NB_LEDS-1].red = 0;
+						buffer[NB_LEDS-1].green = 0;
+						buffer[NB_LEDS-1].blue = particle_kernel[particle_counter[END]];
+						break;
+				
+				}
+				particle_counter[END]--;
+			}else{
+		
+				buffer[NB_LEDS-1].red = 0;
+				buffer[NB_LEDS-1].green = 0;
+				buffer[NB_LEDS-1].blue = 0;
+				
+				/*else roll a dice to determine if a new particule needs to be spawned*/
+				if(((float)rand()/(float)RAND_MAX)>0.66){
+					particle_counter[END] = (PARTICLE_LENGTH-1);
+					particle_color[END] = RED;
+					
+					//printf("New particle up!\n");
+				}
+			}	
+		}else{
+			blue_update_counter--;
 		}
+		
+		
+		/*paint explosion on top*/
+		for(i=0;i<8;i++){
+			
+			address = explosion_location-4 + i;
+			
+			if(((float)rand()/(float)RAND_MAX)>explosion_animation_kernel[i]){
+				
+				buffer[address].red = explosion_kernel[i];
+				buffer[address].green = explosion_kernel[i];
+				buffer[address].blue = explosion_kernel[i];
+			}else{
+				buffer[address].red = 0x00;
+				buffer[address].green = 0x00;
+				buffer[address].blue = 0x00;
+			}
+			
+		}
+		
+		
+		write(spi_driver, buffer, NB_LEDS*sizeof(pixel_t));
+		
+		usleep(15000);	
 	}
 	
-	/*
-	 * 
-	 * reset pairing mode
-	 */
-	
-	feature_proc[PLAYER_1].nb_train_samples = app_config->training_set_size;
-	feature_proc[PLAYER_1].feature_input = &(feature_input[PLAYER_1]);
-	init_feat_processing(&(feature_proc[PLAYER_1]));
-	
-	feature_proc[PLAYER_2].nb_train_samples = app_config->training_set_size;
-	feature_proc[PLAYER_2].feature_input = &(feature_input[PLAYER_2]);
-	init_feat_processing(&(feature_proc[PLAYER_2]));
-	
-	/*
-	 * 
-	 * training 
-	 */
-	pthread_create(&(thread[PLAYER_1]), &attr, train_player, &(feature_proc[PLAYER_1])); 
-	pthread_create(&(thread[PLAYER_2]), &attr, train_player, &(feature_proc[PLAYER_2])); 
-	pthread_join(&(thread[PLAYER_1]),NULL);
-	pthread_join(&(thread[PLAYER_2]),NULL);
-		
-	printf("About to start task\n");
-	fflush(stdout);	
-	sleep(3);	
-		
-	start = clock();
-		
-	/*run the test*/
-	while(task_running){
-	
-		/*get a normalized sample*/
-		get_normalized_sample(&(feature_proc[PLAYER_1]));
-		
-		/*get a normalized sample*/
-		pthread_create(&(thread[PLAYER_1]), &attr, get_sample, &(feature_proc[PLAYER_1]));
-		pthread_create(&(thread[PLAYER_2]), &attr, get_sample, &(feature_proc[PLAYER_2])); 
-		pthread_join(&(thread[PLAYER_1]),NULL);
-		pthread_join(&(thread[PLAYER_2]),NULL);
-		
-		adjusted_sample[PLAYER_1] = ((float)feature_proc[PLAYER_1].sample*100/3.5);
-		running_avg[PLAYER_1] += (adjusted_sample[PLAYER_1]-running_avg[PLAYER_1])/app_config->avg_kernel;
-		
-		adjusted_sample[PLAYER_2] = ((float)feature_proc[PLAYER_2].sample*100/3.5);
-		running_avg[PLAYER_2] += (adjusted_sample[PLAYER_2]-running_avg[PLAYER_2])/app_config->avg_kernel;
-		
-		printf("sample value[PLAYER_1]: %i\n",(int)running_avg[PLAYER_1]);
-		printf("sample value[PLAYER_2]: %i\n",(int)running_avg[PLAYER_2]);
-		
-		/*get current time*/
-		end = clock();
-		cpu_time_used = ((double) (end - start)) / (double)CLOCKS_PER_SEC * 100;
-		
-		/*check if one of the stop conditions is met*/
-		if(app_config->test_duration < cpu_time_used){
-			task_running = 0x00;
-		}
-		
-	}
-	
-	printf("Finished\n");
-		
-	ipc_comm_cleanup(&(ipc_comm[PLAYER_1]));
-	clean_up_feat_processing(&(feature_proc[PLAYER_1]));
 	
 	exit(0);
 }
 
 
-/**
- * print_banner()
- * @brief Prints app banner
- */
-static inline void print_banner()
-{
-	printf("\nCerebral Wars - EEG tug-of-war\n\n");
-	printf("Frederic Simard (fred.simard@atlantsembedded.com)\n");
-	printf("------------------------------------------\n");
-}
-
+#if 0
+typedef struct pixel_s{
+	
+	uint8_t red;
+	uint8_t green;
+	uint8_t blue;
+} /*__attribute__((packed)) */pixel_t;
 
 
 /**
- * which_config(int argc, char **argv)
- * @brief return which config to use
- * @param argc
- * @param argv
- * @return string of config
+ * main(int argc, char **argv)
+ * @brief test the mindbx_lib
  */
-inline char *which_config(int argc, char **argv)
-{
-
-	if (argc == 2) {
-		return argv[1];
-	} else {
-		return CONFIG_NAME;
+int main(int argc, char **argv){
+	
+	int i, loop_count,start_count;
+	int red, blue, green;
+	int spi_driver;
+	while(1){
+	printf("Input the value of start count: ");
+	scanf("%d", &start_count);
+	printf("Input the value of end count: ");
+	scanf("%d", &loop_count);
+	printf("Input the Red intensity: ");
+	scanf("%d", &red);
+	printf("Input the Blue intensity: ");
+	scanf("%d", &blue);
+	printf("Input the Green intensity: ");
+	scanf("%d", &green);
+	
+	/*define buffer*/
+	pixel_t buffer[loop_count];
+	
+	/*set the whole array to 0*/
+	memset(buffer,0,loop_count*sizeof(pixel_t));
+	
+	for(i=start_count;i<loop_count;i++){
+		buffer[i].red = red;
+		buffer[i].blue = blue;
+		buffer[i].green = green;
 	}
+	
+	
+	/*configure the mind box*/
+	spi_driver = open("/dev/spidev0.0",O_RDWR);
+	write(spi_driver, buffer, loop_count*sizeof(pixel_t));
+	
+	close(spi_driver);	
+	
 }
-
-/**
- * void* train_player(void* param)
- * @brief thread that trains the feature processor received as input
- * @param param, pointer to feature processor
- * @return NULL
- */
-void* train_player(void* param){
-	train_feat_processing((feat_proc_t*)param);	
-	return NULL;
+	exit(0);
 }
-
-/**
- * void* get_sample(void* param)
- * @brief thread that gets a processed sample
- * @param param, pointer to feature processor
- * @return NULL
- */
-void* get_sample(void* param){
-	get_normalized_sample((feat_proc_t*)param);
-}
-
+#endif
