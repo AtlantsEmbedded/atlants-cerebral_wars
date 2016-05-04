@@ -139,7 +139,7 @@ int main(int argc, char *argv[])
 	/*start training*/	
 	pthread_create(&(threads_array[PLAYER_1]), &attr,
 				   train_player, (void*)&(feature_proc[PLAYER_1]));
-	pthread_create(&(threads_array[PLAYER_1]), &attr,
+	pthread_create(&(threads_array[PLAYER_2]), &attr,
 				   train_player, (void*)&(feature_proc[PLAYER_2]));
 				   
 	pthread_join(threads_array[PLAYER_1], NULL);			   
