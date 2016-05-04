@@ -14,13 +14,13 @@ start() {
 	/intelli/data/data_preprocessing /intelli/data/config/preprocess_config_player1.xml &
 	/intelli/data/data_preprocessing /intelli/data/config/preprocess_config_player2.xml &
 	sleep 2
-	/intelli/app/cerebral_wars /intelli/app/config/cerebral_wars_config.xml &
+	/intelli/app/cerebral_wars_app /intelli/app/config/cerebral_wars_config.xml &
 }
 
 stop() {
         killall data_interface
         killall data_preprocessing
-        killall cerebral_wars
+        killall cerebral_wars_app
 }
 
 boot() {
@@ -32,6 +32,6 @@ boot() {
 	/intelli/data/data_preprocessing /intelli/data/config/preprocess_config_player1.xml &
 	/intelli/data/data_preprocessing /intelli/data/config/preprocess_config_player2.xml &
 	sleep 2
-	/intelli/app/cerebral_wars /intelli/app/config/cerebral_wars_config.xml &
+	/intelli/app/cerebral_wars_app /intelli/app/config/cerebral_wars_config.xml &
 
 }
