@@ -1,16 +1,9 @@
 /**
  * @file shm_rd_buf.c
  * @author Frederic Simard, Atlants Embedded (frederic.simard.1@outlook.com)
- * @brief This file implements the shared memory data input system.
- *        The shared memory is meant to be shared between at least two processes and
- *        takes the form of a circular buffer with several pages. When one page is done
- *        writing a semaphore is set to inform the reader (this process) 
- *        that a page is available to read. only when the reader confirms that 
- *        the data has been read is the writer allowed to write in it.
- * 
- *        When no page is available to write, the current process drops the sample. The number
- *        of pages should be kept as small as possible to prevent processing old data while
- *        dropping newest...
+ * @brief This file implements the shared memory feature input system.
+ *        This service drive all the input stream, opening buffers on request
+ * 		  and providing a blocking call to wait for the news sample
  */
 
 #include <stdio.h>
@@ -41,7 +34,7 @@ int shm_rd_init(void *param){
     /*
      * initialise the shared memory array
      */
-    if ((pfeature_input->shmid = shmget(pfeature_input->shm_key, SHM_BUF_SIZE, IPC_CREAT | 0666)) < 0) {
+    if ((pfeature_input->shmid = shmget(pfeature_input->shm_key, pfeature_input->buffer_depth*pfeature_input->page_size, IPC_CREAT | 0666)) < 0) {
         perror("shmget");
         return EXIT_FAILURE;
     }
@@ -64,7 +57,12 @@ int shm_rd_init(void *param){
 	
 	/*allocate the memory for the pointer to semaphore operations*/
 	pfeature_input->sops = (struct sembuf *) malloc(sizeof(struct sembuf));
+	
+	/*set as if the current page was the last, such that the next page read will
+	  be the first one*/
+	pfeature_input->current_page = pfeature_input->buffer_depth-1;
 
+	/*set all semaphores to 0*/
 	for(i=0;i<4;i++){
 		semctl(pfeature_input->semid, i, SETVAL, 0);
 	}
@@ -74,10 +72,9 @@ int shm_rd_init(void *param){
 
 
 /**
- * int shm_rd_read_from_buf(void *param)
- * @brief Reads data from the shared memory buffer and writes in the structure
- *        received as input.
- * @param param, reference to the structure where the data should be put
+ * int shm_rd_request(void *param)
+ * @brief Open the buffers to catch a new sample
+ * @param param, reference to the feature input struct
  * @return EXIT_FAILURE for unknown type, EXIT_SUCCESS for known/success
  */
 int shm_rd_request(void *param){
@@ -101,6 +98,12 @@ int shm_rd_request(void *param){
 }
 
 
+/**
+ * int shm_rd_request(void *param)
+ * @brief Blocking call, until a sample has arrived
+ * @param param, reference to the feature input struct
+ * @return EXIT_FAILURE for unknown type, EXIT_SUCCESS for known/success
+ */
 int shm_rd_wait_for_request_completed(void *param){
 	
 	feature_input_t* pfeature_input = param;
@@ -114,9 +117,42 @@ int shm_rd_wait_for_request_completed(void *param){
 		return EXIT_FAILURE;
 	}
 	
+	/*update page id*/
+	pfeature_input->current_page += 1;
+	pfeature_input->current_page %= pfeature_input->buffer_depth;
 	return EXIT_SUCCESS;
 	
 }
+
+/**
+ * frame_info_t* shm_get_frame_info_ref(void *param)
+ * @brief Call to get a reference to the frame info of the current page
+ * @param param, reference to the feature input struct
+ * @return references to the frame info
+ */
+frame_info_t* shm_get_frame_info_ref(void *param){
+	
+	feature_input_t* pfeature_input = param;
+	/*compute offset of current page*/
+	int offset = pfeature_input->current_page*pfeature_input->page_size;
+	printf("offset: %d\n",offset);
+	return (frame_info_t*)&(pfeature_input->shm_buf[offset]);
+}
+
+/**
+ * frame_info_t* shm_get_frame_info_ref(void *param)
+ * @brief Call to get a reference to the feature vector of the current page
+ * @param param, reference to the feature input struct
+ * @return reference to the feature vector
+ */
+double* shm_get_feature_array_ref(void *param){
+	
+	feature_input_t* pfeature_input = param;
+	/*compute offset of current page and skip frame info*/
+	int offset = pfeature_input->current_page*pfeature_input->page_size + sizeof(frame_info_t);
+	return (double*)&(pfeature_input->shm_buf[offset]);
+}
+
 
 /**
  * int shm_rd_cleanup(void *param)
