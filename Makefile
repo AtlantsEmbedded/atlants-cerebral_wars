@@ -1,5 +1,5 @@
 #############################################################################
-# Makefile for building: buzzer_bench
+# Makefile for building: cerebral_wars
 #############################################################################
 
 MAKEFILE      = Makefile
@@ -62,23 +62,23 @@ OBJECTS_DIR   = ./
 ####### Files
 
 SOURCES       = src/main.c \
-				src/app_signal.c \
-				src/feature_input.c \
-				src/feature_processing.c \
-				src/ipc_status_comm.c \
-				src/xml.c \
-				src/supported_feature_input/fake_feature_generator.c \
-				src/supported_feature_input/shm_rd_buf.c
+		src/app_signal.c \
+		src/feature_input.c \
+		src/feature_processing.c \
+		src/ipc_status_comm.c \
+		src/xml.c \
+		src/supported_feature_input/fake_feature_generator.c \
+		src/supported_feature_input/shm_rd_buf.c
 OBJECTS       = src/main.o \
-				src/app_signal.o \
-				src/feature_input.o \
-				src/feature_processing.o \
-				src/ipc_status_comm.o \
-				src/xml.o \
-				src/supported_feature_input/fake_feature_generator.o \
-				src/supported_feature_input/shm_rd_buf.o
+		src/app_signal.o \
+		src/feature_input.o \
+		src/feature_processing.o \
+		src/ipc_status_comm.o \
+		src/xml.o \
+		src/supported_feature_input/fake_feature_generator.o \
+		src/supported_feature_input/shm_rd_buf.o
 DESTDIR       = #avoid trailing-slash linebreak
-TARGET        = braintone_app
+TARGET        = cerebral_wars_app
 
 
 first: all
