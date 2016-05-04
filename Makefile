@@ -1,5 +1,5 @@
 #############################################################################
-# Makefile for building: cerebral_wars
+# Makefile for building: buzzer_bench
 #############################################################################
 
 MAKEFILE      = Makefile
@@ -35,7 +35,7 @@ else
                		-Iinclude
 endif
 
-LIBS          =-L$(STAGING_DIR)/lib -L$(STAGING_DIR)/usr/lib -lm -lpthread -lezxml -lglib-2.0 $(ARCH_LIBS)
+LIBS          =-L$(STAGING_DIR)/lib -L$(STAGING_DIR)/usr/lib -lm -lpthread -lezxml -lbuzzer -lstats -lglib-2.0 $(ARCH_LIBS)
 AR            = ar cqs
 RANLIB        = 
 TAR           = tar -cf
@@ -61,10 +61,24 @@ OBJECTS_DIR   = ./
 
 ####### Files
 
-SOURCES       = src/main.c
-OBJECTS       = src/main.o
+SOURCES       = src/main.c \
+				src/app_signal.c \
+				src/feature_input.c \
+				src/feature_processing.c \
+				src/ipc_status_comm.c \
+				src/xml.c \
+				src/supported_feature_input/fake_feature_generator.c \
+				src/supported_feature_input/shm_rd_buf.c
+OBJECTS       = src/main.o \
+				src/app_signal.o \
+				src/feature_input.o \
+				src/feature_processing.o \
+				src/ipc_status_comm.o \
+				src/xml.o \
+				src/supported_feature_input/fake_feature_generator.o \
+				src/supported_feature_input/shm_rd_buf.o
 DESTDIR       = #avoid trailing-slash linebreak
-TARGET        = cerebralwars_app
+TARGET        = braintone_app
 
 
 first: all
@@ -109,6 +123,27 @@ dist:
 main.o: src/main.c 
 	$(CC) -c $(CFLAGS) $(INCPATH) -o main.o src/main.c
 	
+app_signal.o: src/app_signal.c 
+	$(CC) -c $(CFLAGS) $(INCPATH) -o app_signal.o src/app_signal.c
+	
+feature_input.o: src/feature_input.c 
+	$(CC) -c $(CFLAGS) $(INCPATH) -o feature_input.o src/feature_input.c
+	
+feature_processing.o: src/feature_processing.c 
+	$(CC) -c $(CFLAGS) $(INCPATH) -o feature_processing.o src/feature_processing.c
+	
+ipc_status_comm.o: src/ipc_status_comm.c 
+	$(CC) -c $(CFLAGS) $(INCPATH) -o ipc_status_comm.o src/ipc_status_comm.c
+	
+xml.o: src/xml.c 
+	$(CC) -c $(CFLAGS) $(INCPATH) -o xml.o src/xml.c
+	
+fake_feature_generator.o: src/supported_feature_input/fake_feature_generator.c 
+	$(CC) -c $(CFLAGS) $(INCPATH) -o fake_feature_generator.o src/supported_feature_input/fake_feature_generator.c
+	
+shm_rd_buf.o: src/supported_feature_input/shm_rd_buf.c 
+	$(CC) -c $(CFLAGS) $(INCPATH) -o shm_rd_buf.o src/supported_feature_input/shm_rd_buf.c
+
 ####### Install
 
 install:   FORCE
