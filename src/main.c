@@ -32,8 +32,16 @@
 
 /*defines the frequency scale*/
 #define NB_STEPS 100
-#define NB_PLAYERS 1
+#define NB_PLAYERS 2
 #define PLAYER_1 0
+#define PLAYER_2 1
+
+/*temp*/
+#define PLAYER_1_SHM_KEY 7805
+#define PLAYER_2_SHM_KEY 6712
+#define PLAYER_1_SEM_KEY 1234
+#define PLAYER_2_SEM_KEY 8921
+
 
 /*function prototypes*/
 static void print_banner();
@@ -90,8 +98,11 @@ int main(int argc, char *argv[])
 	}
 	
 	/*configure the inter-process communication channel*/
-	ipc_comm[PLAYER_1].sem_key=1234;
+	ipc_comm[PLAYER_1].sem_key=PLAYER_1_SEM_KEY;
 	ipc_comm_init(&(ipc_comm[PLAYER_1]));
+	
+	ipc_comm[PLAYER_2].sem_key=PLAYER_2_SEM_KEY;
+	ipc_comm_init(&(ipc_comm[PLAYER_2]));
 	
 	/*configure threads*/
 	res = pthread_attr_init(&attr);
@@ -103,7 +114,8 @@ int main(int argc, char *argv[])
 
 	/*if required, wait for eeg hardware to be present*/
 	if(app_config->eeg_hardware_required){
-		if(!ipc_wait_for_harware(&(ipc_comm[PLAYER_1]))){
+		if(!ipc_wait_for_harware(&(ipc_comm[PLAYER_1])) || 
+		   !ipc_wait_for_harware(&(ipc_comm[PLAYER_2]))){
 			exit(0);
 		}
 	}
@@ -118,12 +130,21 @@ int main(int argc, char *argv[])
 	feature_proc[PLAYER_1].nb_train_samples = app_config->training_set_size;
 	feature_proc[PLAYER_1].feature_input = &(feature_input[PLAYER_1]);
 	init_feat_processing(&(feature_proc[PLAYER_1]));
+	
+	feature_proc[PLAYER_2].nb_train_samples = app_config->training_set_size;
+	feature_proc[PLAYER_2].feature_input = &(feature_input[PLAYER_2]);
+	init_feat_processing(&(feature_proc[PLAYER_2]));
+	
 		
 	/*start training*/	
-	//train_feat_processing(&(feature_proc[PLAYER_1]));
 	pthread_create(&(threads_array[PLAYER_1]), &attr,
 				   train_player, (void*)&(feature_proc[PLAYER_1]));
+	pthread_create(&(threads_array[PLAYER_1]), &attr,
+				   train_player, (void*)&(feature_proc[PLAYER_2]));
+				   
 	pthread_join(threads_array[PLAYER_1], NULL);			   
+	pthread_join(threads_array[PLAYER_2], NULL);			   
+	
 	
 	/*little pause between training and testing*/	
 	printf("About to start task\n");
@@ -136,10 +157,13 @@ int main(int argc, char *argv[])
 	while(task_running){
 	
 		/*get a normalized sample*/
-		//get_normalized_sample(&(feature_proc[PLAYER_1]));
 		pthread_create(&(threads_array[PLAYER_1]), &attr,
 					   get_sample, (void*)&(feature_proc[PLAYER_1]));
+		pthread_create(&(threads_array[PLAYER_2]), &attr,
+					   get_sample, (void*)&(feature_proc[PLAYER_2]));
+					   
 		pthread_join(threads_array[PLAYER_1], NULL);		
+		pthread_join(threads_array[PLAYER_2], NULL);		
 		
 		/*adjust the sample value to the pitch scale*/
 		adjusted_sample = ((float)feature_proc[PLAYER_1].sample*100/4);
@@ -168,6 +192,8 @@ int main(int argc, char *argv[])
 	/*clean up app*/	
 	ipc_comm_cleanup(&(ipc_comm[PLAYER_1]));
 	clean_up_feat_processing(&(feature_proc[PLAYER_1]));
+	ipc_comm_cleanup(&(ipc_comm[PLAYER_2]));
+	clean_up_feat_processing(&(feature_proc[PLAYER_2]));
 	
 	return EXIT_SUCCESS;
 }
@@ -176,11 +202,15 @@ int main(int argc, char *argv[])
 
 int configure_feature_input(feature_input_t* feature_input, appconfig_t* app_config){
 	
+	int i = 0;
 	int nb_features = 0;
 	
 	/*set the keys*/
-	feature_input[PLAYER_1].shm_key=7804;
-	feature_input[PLAYER_1].sem_key=1234;
+	feature_input[PLAYER_1].shm_key=PLAYER_1_SHM_KEY;
+	feature_input[PLAYER_1].sem_key=PLAYER_1_SEM_KEY;
+	
+	feature_input[PLAYER_2].shm_key=PLAYER_2_SHM_KEY;
+	feature_input[PLAYER_2].sem_key=PLAYER_2_SEM_KEY;
 	
 	/*compute the page size from the selected features*/
 	
@@ -212,11 +242,13 @@ int configure_feature_input(feature_input_t* feature_input, appconfig_t* app_con
 	}
 	
 	/*set buffer size related fields*/
-	feature_input[PLAYER_1].nb_features = nb_features;
-	feature_input[PLAYER_1].page_size = sizeof(frame_info_t)+nb_features*sizeof(double); 
-	feature_input[PLAYER_1].buffer_depth = app_config->buffer_depth;
+	for(i=0;i<NB_PLAYERS;i++){
+		feature_input[i].nb_features = nb_features;
+		feature_input[i].page_size = sizeof(frame_info_t)+nb_features*sizeof(double); 
+		feature_input[i].buffer_depth = app_config->buffer_depth;
+		init_feature_input(app_config->feature_source, &(feature_input[i]));
+	}
 	
-	init_feature_input(app_config->feature_source, &(feature_input[PLAYER_1]));
 
 	return EXIT_SUCCESS;
 }
