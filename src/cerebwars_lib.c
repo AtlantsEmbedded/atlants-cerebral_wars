@@ -285,7 +285,7 @@ void* cereb_train_loop(void* param){
 			red_update_counter = RED_UPDATE_PERIOD;
 			
 			/*from the start to explosion*/
-			for(i=NB_LEDS;i>=explosion_location;i--){
+			for(i=NB_LEDS-2;i>=explosion_location;i--){
 				buffer[i+1].red = buffer[i].red;
 				buffer[i+1].green = buffer[i].green;
 				buffer[i+1].blue = buffer[i].blue;
@@ -294,17 +294,17 @@ void* cereb_train_loop(void* param){
 			/*check if a particle is being placed at the beginning*/
 			if(particle_counter[END]>0){
 				
-				buffer[explosion_location].red = 0;
-				buffer[explosion_location].green = 1;
-				buffer[explosion_location].blue = 0;
+				buffer[explosion_location+1].red = 0;
+				buffer[explosion_location+1].green = particle_kernel[particle_counter[END]];
+				buffer[explosion_location+1].blue = 0;
 				
 				particle_counter[END]--;
 				
 			}else{
 		
-				buffer[explosion_location].red = 0;
-				buffer[explosion_location].green = 0;
-				buffer[explosion_location].blue = 0;
+				buffer[explosion_location+1].red = 0;
+				buffer[explosion_location+1].green = 0;
+				buffer[explosion_location+1].blue = 0;
 				
 				/*else roll a dice to determine if a new particule needs to be spawned*/
 				if(((float)rand()/(float)RAND_MAX)>0.66 || iteration_count==0){
@@ -321,7 +321,7 @@ void* cereb_train_loop(void* param){
 			
 			/*from the end to explosion*/
 			/*roll back by bringing encountered values forward*/
-			for(i=0;i<explosion_location;i++){
+			for(i=1;i<explosion_location;i++){
 				buffer[i-1].red = buffer[i].red;
 				buffer[i-1].green = buffer[i].green;
 				buffer[i-1].blue = buffer[i].blue;
@@ -330,16 +330,16 @@ void* cereb_train_loop(void* param){
 			/*check if a particle is being placed at the end*/
 			if(particle_counter[BEGIN]>0){
 				
-				buffer[explosion_location].red = 0;
-				buffer[explosion_location].green = 1;
-				buffer[explosion_location].blue = 0;
+				buffer[explosion_location-1].red = 0;
+				buffer[explosion_location-1].green = 1;
+				buffer[explosion_location-1].blue = 0;
 				
 				particle_counter[BEGIN]--;
 			}else{
 		
-				buffer[explosion_location].red = 0;
-				buffer[explosion_location].green = 0;
-				buffer[explosion_location].blue = 0;
+				buffer[explosion_location-1].red = 0;
+				buffer[explosion_location-1].green = 0;
+				buffer[explosion_location-1].blue = 0;
 				
 				/*else roll a dice to determine if a new particule needs to be spawned*/
 				if(((float)rand()/(float)RAND_MAX)> 0.66|| iteration_count==0){
