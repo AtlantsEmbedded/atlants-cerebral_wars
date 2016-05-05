@@ -180,6 +180,7 @@ int main(int argc, char *argv[])
 		
 		set_player_1_rate(0.66);
 		set_player_2_rate(0.66);
+		set_explosion_location(0.25);
 		
 		/*show sample value on console*/
 		printf("sample value: %i\n",(int)running_avg);

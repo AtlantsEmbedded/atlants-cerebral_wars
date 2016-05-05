@@ -47,7 +47,7 @@ const unsigned char player_mask[NB_PLAYERS][NB_COLORS] = {{1, 0, 0},
 														  {0, 0, 1}};
 
 #define EXPLOSION_SIZE 8
-const unsigned char explosion_kernel[EXPLOSION_SIZE] = {10, 20, 50, 100, 100, 50, 20, 10};
+const unsigned char explosion_kernel[EXPLOSION_SIZE] = {15, 30, 75, 150, 150, 75, 30, 15};
 const float explosion_animation_kernel[EXPLOSION_SIZE] = {0.1, 0.3, 0.5, 0.7, 0.7, 0.5, 0.3, 0.1};
 
 void paint_explosion(pixel_t* buffer);
@@ -88,6 +88,8 @@ void paint_explosion(pixel_t* buffer){
 	int i=0;
 	int address=0;
 	
+	double explosion_intensity = (player_rate[PLAYER_1]+player_rate[PLAYER_2])/2;
+	
 	/*paint explosion on top*/
 	for(i=0;i<EXPLOSION_SIZE;i++){
 		
@@ -95,9 +97,9 @@ void paint_explosion(pixel_t* buffer){
 		
 		if(((float)rand()/(float)RAND_MAX)>explosion_animation_kernel[i]){
 			
-			buffer[address].red = explosion_kernel[i];
-			buffer[address].green = explosion_kernel[i];
-			buffer[address].blue = explosion_kernel[i];
+			buffer[address].red = explosion_intensity * explosion_kernel[i];
+			buffer[address].green = explosion_intensity * explosion_kernel[i];
+			buffer[address].blue = explosion_intensity * explosion_kernel[i];
 		}else{
 			buffer[address].red = 0x00;
 			buffer[address].green = 0x00;
@@ -118,6 +120,7 @@ void* cereb_strip_loop(void* param){
 	static uint32_t speed = 1000000;
 	int red_update_counter = RED_UPDATE_PERIOD;
 	int blue_update_counter = BLUE_UPDATE_PERIOD;
+	int iteration_count = 0;
 	
 	
 	/*configure spi driver*/
@@ -154,7 +157,7 @@ void* cereb_strip_loop(void* param){
 				buffer[0].blue = 0;
 				
 				/*else roll a dice to determine if a new particule needs to be spawned*/
-				if(((float)rand()/(float)RAND_MAX)>player_rate[PLAYER_1]){
+				if(((float)rand()/(float)RAND_MAX)>player_rate[PLAYER_1] || iteration_count==0){
 					particle_counter[BEGIN] = (PARTICLE_LENGTH-1);
 					
 				}
@@ -189,7 +192,7 @@ void* cereb_strip_loop(void* param){
 				buffer[NB_LEDS-1].blue = 0;
 				
 				/*else roll a dice to determine if a new particule needs to be spawned*/
-				if(((float)rand()/(float)RAND_MAX)>player_rate[PLAYER_2]){
+				if(((float)rand()/(float)RAND_MAX)>player_rate[PLAYER_2] || iteration_count==0){
 					particle_counter[END] = (PARTICLE_LENGTH-1);
 					
 				}
@@ -198,9 +201,12 @@ void* cereb_strip_loop(void* param){
 			blue_update_counter--;
 		}
 		
-		/*paint the explosion*/
-		paint_explosion(buffer);
-		
+		/*paint the explosion, after particles have met in the middle*/
+		if(iteration_count>NB_LEDS/2)
+			paint_explosion(buffer);
+		else{
+			iteration_count++;
+		}
 		/*push it down the SPI*/
 		write(spi_driver, buffer, NB_LEDS*sizeof(pixel_t));
 		
