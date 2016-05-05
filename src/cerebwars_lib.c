@@ -161,10 +161,13 @@ int cerebral_wars_testbench(){
 
 void paint_explosion(pixel_t* buffer, int explosion_location){
 	
+	int i=0;
+	int address=0;
+	
 	/*paint explosion on top*/
-	for(int i=0;i<EXPLOSION_SIZE;i++){
+	for(i=0;i<EXPLOSION_SIZE;i++){
 		
-		int address = explosion_location-EXPLOSION_SIZE/2 + i;
+		address = explosion_location-EXPLOSION_SIZE/2 + i;
 		
 		if(((float)rand()/(float)RAND_MAX)>explosion_animation_kernel[i]){
 			
