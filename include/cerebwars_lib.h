@@ -2,7 +2,7 @@
 #define CEREBWARS_LIB_H
 
 
-
+int cerebral_wars_training_mode();
 int start_cerebral_wars();
 void stop_cerebral_wars();
 

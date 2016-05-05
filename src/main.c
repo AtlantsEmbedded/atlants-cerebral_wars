@@ -88,9 +88,6 @@ int main(int argc, char *argv[])
 	/*Show program banner on stdout*/
 	print_banner();
 	
-	
-	
-	
 	/*read the xml*/
 	app_config = xml_initialize(which_config(argc, argv));
 	
@@ -131,6 +128,8 @@ int main(int argc, char *argv[])
 	printf("About to begin training\n");
 	fflush(stdout);
 	
+	cerebral_wars_training_mode();
+	
 	/*initialize feature processing*/
 	feature_proc[PLAYER_1].nb_train_samples = app_config->training_set_size;
 	feature_proc[PLAYER_1].feature_input = &(feature_input[PLAYER_1]);
@@ -150,6 +149,7 @@ int main(int argc, char *argv[])
 	pthread_join(threads_array[PLAYER_1], NULL);			   
 	pthread_join(threads_array[PLAYER_2], NULL);			   
 	
+	stop_cerebral_wars();
 	
 	/*little pause between training and testing*/	
 	printf("About to start task\n");

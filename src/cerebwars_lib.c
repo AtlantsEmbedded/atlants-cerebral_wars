@@ -53,6 +53,7 @@ const float explosion_animation_kernel[EXPLOSION_SIZE] = {0.1, 0.3, 0.5, 0.7, 0.
 void paint_explosion(pixel_t* buffer);
 
 void* cereb_strip_loop(void* param);
+void* cereb_train_loop(void* param);
 
 double player_rate[NB_PLAYERS] = {0,0};
 int explosion_location = NB_LEDS/2;
@@ -77,6 +78,30 @@ int start_cerebral_wars(){
 	
 	return EXIT_SUCCESS;
 }
+
+
+int cerebral_wars_training_mode(){
+	
+	pthread_t cereb_loop;
+	pthread_attr_t attr;
+	char res;
+
+	/*configure threads*/
+	res = pthread_attr_init(&attr);
+	if (res != 0)
+		return EXIT_FAILURE;
+	
+	alive = 0x01;
+	
+	/*configure threads*/
+	pthread_create(&cereb_loop, &attr,
+				   cereb_train_loop, NULL);
+	
+	return EXIT_SUCCESS;
+	
+}
+
+
 
 void stop_cerebral_wars(){
 	alive = 0x00;
@@ -112,7 +137,6 @@ void paint_explosion(pixel_t* buffer){
 
 
 void* cereb_strip_loop(void* param){
-	
 	
 	/*define buffer*/
 	pixel_t buffer[NB_LEDS];
@@ -214,6 +238,8 @@ void* cereb_strip_loop(void* param){
 		
 		usleep(15000);	
 	}
+	
+	close(spi_driver);
 	return NULL;
 }
 
@@ -227,4 +253,118 @@ void set_player_2_rate(double rate){
 
 void set_explosion_location(double relative_position){
 	explosion_location = (NB_LEDS*relative_position);
+}
+
+
+
+
+
+void* cereb_train_loop(void* param){
+	
+	
+	/*define buffer*/
+	pixel_t buffer[NB_LEDS];
+	int i;
+	int spi_driver;
+	unsigned char particle_counter[2] = {0x00,0x00};
+	static uint32_t speed = 1000000;
+	int red_update_counter = RED_UPDATE_PERIOD;
+	int blue_update_counter = BLUE_UPDATE_PERIOD;
+	int iteration_count = 0;
+	
+	
+	/*configure spi driver*/
+	spi_driver = open("/dev/spidev0.0",O_RDWR);
+	ioctl(spi_driver, SPI_IOC_WR_MAX_SPEED_HZ, &speed);	
+	
+	memset(buffer,0,sizeof(pixel_t)*NB_LEDS);
+	
+	while(alive){
+		
+		if(red_update_counter<=0){
+			red_update_counter = RED_UPDATE_PERIOD;
+			
+			/*from the start to explosion*/
+			for(i=NB_LEDS;i>=explosion_location;i--){
+				buffer[i+1].red = buffer[i].red;
+				buffer[i+1].green = buffer[i].green;
+				buffer[i+1].blue = buffer[i].blue;
+			}
+			
+			/*check if a particle is being placed at the beginning*/
+			if(particle_counter[END]>0){
+				
+				buffer[explosion_location].red = 0;
+				buffer[explosion_location].green = 1;
+				buffer[explosion_location].blue = 0;
+				
+				particle_counter[END]--;
+				
+			}else{
+		
+				buffer[explosion_location].red = 0;
+				buffer[explosion_location].green = 0;
+				buffer[explosion_location].blue = 0;
+				
+				/*else roll a dice to determine if a new particule needs to be spawned*/
+				if(((float)rand()/(float)RAND_MAX)>0.66 || iteration_count==0){
+					particle_counter[END] = (PARTICLE_LENGTH-1);
+					
+				}
+			}	
+		}else{
+			red_update_counter--;
+		}
+		
+		if(blue_update_counter<=0){
+			blue_update_counter = BLUE_UPDATE_PERIOD;
+			
+			/*from the end to explosion*/
+			/*roll back by bringing encountered values forward*/
+			for(i=0;i<explosion_location;i++){
+				buffer[i-1].red = buffer[i].red;
+				buffer[i-1].green = buffer[i].green;
+				buffer[i-1].blue = buffer[i].blue;
+			}
+			
+			/*check if a particle is being placed at the end*/
+			if(particle_counter[BEGIN]>0){
+				
+				buffer[explosion_location].red = 0;
+				buffer[explosion_location].green = 1;
+				buffer[explosion_location].blue = 0;
+				
+				particle_counter[BEGIN]--;
+			}else{
+		
+				buffer[explosion_location].red = 0;
+				buffer[explosion_location].green = 0;
+				buffer[explosion_location].blue = 0;
+				
+				/*else roll a dice to determine if a new particule needs to be spawned*/
+				if(((float)rand()/(float)RAND_MAX)> 0.66|| iteration_count==0){
+					particle_counter[END] = (PARTICLE_LENGTH-1);
+					
+				}
+			}	
+		}else{
+			blue_update_counter--;
+		}
+		
+		/*paint the explosion, after particles have met in the middle*/
+		if(iteration_count>NB_LEDS/2)
+			paint_explosion(buffer);
+		else{
+			iteration_count++;
+		}
+		/*push it down the SPI*/
+		write(spi_driver, buffer, NB_LEDS*sizeof(pixel_t));
+		
+		usleep(15000);	
+	}
+	
+	close(spi_driver);
+	
+	return NULL;
+	
 }
