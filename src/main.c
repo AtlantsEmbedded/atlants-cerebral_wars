@@ -175,7 +175,7 @@ int main(int argc, char *argv[])
 		adjusted_sample[PLAYER_1] = ((float)feature_proc[PLAYER_1].sample/4);
 		adjusted_sample[PLAYER_2] = ((float)feature_proc[PLAYER_2].sample/4);
 		
-		integrated_diff += (adjusted_sample[PLAYER_2]*3-adjusted_sample[PLAYER_1])/100;
+		integrated_diff += (adjusted_sample[PLAYER_2]*30-adjusted_sample[PLAYER_1])/100;
 		
 		if(adjusted_sample[PLAYER_1]>1){
 			adjusted_sample[PLAYER_1] = 1;

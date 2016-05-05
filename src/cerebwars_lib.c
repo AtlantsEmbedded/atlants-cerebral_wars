@@ -113,8 +113,6 @@ void paint_explosion(pixel_t* buffer){
 	int i=0;
 	int address=0;
 	
-	double explosion_intensity = (player_rate[PLAYER_1]+player_rate[PLAYER_2])/2;
-	
 	/*paint explosion on top*/
 	for(i=0;i<EXPLOSION_SIZE;i++){
 		
@@ -123,9 +121,9 @@ void paint_explosion(pixel_t* buffer){
 		if(address>=0 && address<NB_LEDS){
 			if(((float)rand()/(float)RAND_MAX)>explosion_animation_kernel[i]){
 				
-				buffer[address].red = explosion_intensity * explosion_kernel[i];
-				buffer[address].green = explosion_intensity * explosion_kernel[i];
-				buffer[address].blue = explosion_intensity * explosion_kernel[i];
+				buffer[address].red = explosion_kernel[i];
+				buffer[address].green = explosion_kernel[i];
+				buffer[address].blue = explosion_kernel[i];
 			}else{
 				buffer[address].red = 0x00;
 				buffer[address].green = 0x00;
