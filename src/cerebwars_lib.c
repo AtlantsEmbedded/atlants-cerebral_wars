@@ -95,15 +95,17 @@ void paint_explosion(pixel_t* buffer){
 		
 		address = explosion_location-EXPLOSION_SIZE/2 + i;
 		
-		if(((float)rand()/(float)RAND_MAX)>explosion_animation_kernel[i]){
-			
-			buffer[address].red = explosion_intensity * explosion_kernel[i];
-			buffer[address].green = explosion_intensity * explosion_kernel[i];
-			buffer[address].blue = explosion_intensity * explosion_kernel[i];
-		}else{
-			buffer[address].red = 0x00;
-			buffer[address].green = 0x00;
-			buffer[address].blue = 0x00;
+		if(address>=0 && address<NB_LEDS){
+			if(((float)rand()/(float)RAND_MAX)>explosion_animation_kernel[i]){
+				
+				buffer[address].red = explosion_intensity * explosion_kernel[i];
+				buffer[address].green = explosion_intensity * explosion_kernel[i];
+				buffer[address].blue = explosion_intensity * explosion_kernel[i];
+			}else{
+				buffer[address].red = 0x00;
+				buffer[address].green = 0x00;
+				buffer[address].blue = 0x00;
+			}
 		}
 	}
 }

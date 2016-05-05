@@ -69,7 +69,8 @@ int main(int argc, char *argv[])
 	char res;
 	double cpu_time_used;
 	double running_avg = 0;
-	double adjusted_sample = 0;
+	double adjusted_sample[NB_PLAYERS] = {0};
+	double integrated_diff = 0.5;
 	clock_t start, end;
 	feature_input_t feature_input[NB_PLAYERS];
 	ipc_comm_t ipc_comm[NB_PLAYERS];
@@ -88,7 +89,6 @@ int main(int argc, char *argv[])
 	print_banner();
 	
 	
-	start_cerebral_wars();
 	
 	
 	/*read the xml*/
@@ -157,6 +157,7 @@ int main(int argc, char *argv[])
 	sleep(3);	
 		
 	start = clock();
+	start_cerebral_wars();
 		
 	/*run the test*/
 	while(task_running){
@@ -171,16 +172,25 @@ int main(int argc, char *argv[])
 		pthread_join(threads_array[PLAYER_2], NULL);		
 		
 		/*adjust the sample value to the pitch scale*/
-		adjusted_sample = ((float)feature_proc[PLAYER_1].sample*100/4);
-		/*compute the running average, using the defined kernel*/
-		running_avg += (adjusted_sample-running_avg)/app_config->avg_kernel;
+		adjusted_sample[PLAYER_1] = ((float)feature_proc[PLAYER_1].sample/4);
+		adjusted_sample[PLAYER_2] = ((float)feature_proc[PLAYER_2].sample/4);
+		
+		integrated_diff += (adjusted_sample[PLAYER_2]-adjusted_sample[PLAYER_1])/100;
+		
+		if(adjusted_sample[PLAYER_1]>1){
+			adjusted_sample[PLAYER_1] = 1;
+		}
+		
+		if(adjusted_sample[PLAYER_2]>1){
+			adjusted_sample[PLAYER_2] = 1;
+		}
+		
 		
 		/*update buzzer state*/
 		set_buzzer_state(running_avg);
-		
-		set_player_1_rate(0.66);
-		set_player_2_rate(0.66);
-		set_explosion_location(0.25);
+		set_player_1_rate(adjusted_sample[PLAYER_1]);
+		set_player_2_rate(adjusted_sample[PLAYER_2]);
+		set_explosion_location(integrated_diff);
 		
 		/*show sample value on console*/
 		printf("sample value: %i\n",(int)running_avg);
