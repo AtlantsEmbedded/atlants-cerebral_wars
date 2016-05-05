@@ -16,7 +16,7 @@
 #include "cerebwars_lib.h"
 
 
-#define NB_LEDS 157   
+#define NB_LEDS 160   
 #define PARTICLE_LENGTH 4
 #define NB_COLORS 3
 #define RED 0
@@ -46,7 +46,7 @@ const unsigned char player_mask[NB_PLAYERS][NB_COLORS] = {{1, 0, 0},
 														  {0, 0, 1}};
 
 #define EXPLOSION_SIZE 8
-const unsigned char explosion_kernel[EXPLOSION_SIZE] = {0, 10, 25, 100, 100, 25, 10, 0};
+const unsigned char explosion_kernel[EXPLOSION_SIZE] = {10, 20, 50, 100, 100, 50, 20, 10};
 const float explosion_animation_kernel[EXPLOSION_SIZE] = {0.1, 0.3, 0.5, 0.7, 0.7, 0.5, 0.3, 0.1};
 
 void paint_explosion(pixel_t* buffer, int location);
@@ -124,9 +124,9 @@ int cerebral_wars_testbench(){
 			/*check if a particle is being placed at the end*/
 			if(particle_counter[END]>0){
 				
-				buffer[NB_LEDS-1].red = player_mask[PLAYER_2][RED]*particle_kernel[particle_counter[BEGIN]];
-				buffer[NB_LEDS-1].green = player_mask[PLAYER_2][GREEN]*particle_kernel[particle_counter[BEGIN]];
-				buffer[NB_LEDS-1].blue = player_mask[PLAYER_2][BLUE]*particle_kernel[particle_counter[BEGIN]];
+				buffer[NB_LEDS-1].red = player_mask[PLAYER_2][RED]*particle_kernel[particle_counter[END]];
+				buffer[NB_LEDS-1].green = player_mask[PLAYER_2][GREEN]*particle_kernel[particle_counter[END]];
+				buffer[NB_LEDS-1].blue = player_mask[PLAYER_2][BLUE]*particle_kernel[particle_counter[END]];
 				
 				particle_counter[END]--;
 			}else{
