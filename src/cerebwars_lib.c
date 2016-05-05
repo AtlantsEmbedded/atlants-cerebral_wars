@@ -9,6 +9,7 @@
 #include <string.h>
 #include <getopt.h>
 #include <fcntl.h>
+#include <pthread.h>
 #include <sys/ioctl.h>
 #include <linux/types.h>
 #include <linux/spi/spidev.h>
@@ -16,7 +17,7 @@
 #include "cerebwars_lib.h"
 
 
-#define NB_LEDS 160   
+#define NB_LEDS 157   
 #define PARTICLE_LENGTH 4
 #define NB_COLORS 3
 #define RED 0
@@ -28,7 +29,7 @@
 
 #define NB_PLAYERS 2
 #define PLAYER_1 0
-#define PLAYER_2 0
+#define PLAYER_2 1
 
 #define RED_UPDATE_PERIOD 4
 #define BLUE_UPDATE_PERIOD 2
@@ -41,7 +42,7 @@ typedef struct pixel_s{
 }pixel_t;
 
 
-const unsigned char particle_kernel[PARTICLE_LENGTH] = {0, 25, 50, 150};
+const unsigned char particle_kernel[PARTICLE_LENGTH] = {0, 25, 50, 255};
 const unsigned char player_mask[NB_PLAYERS][NB_COLORS] = {{1, 0, 0},
 														  {0, 0, 1}};
 
@@ -49,21 +50,75 @@ const unsigned char player_mask[NB_PLAYERS][NB_COLORS] = {{1, 0, 0},
 const unsigned char explosion_kernel[EXPLOSION_SIZE] = {10, 20, 50, 100, 100, 50, 20, 10};
 const float explosion_animation_kernel[EXPLOSION_SIZE] = {0.1, 0.3, 0.5, 0.7, 0.7, 0.5, 0.3, 0.1};
 
-void paint_explosion(pixel_t* buffer, int location);
+void paint_explosion(pixel_t* buffer);
 
+void* cereb_strip_loop(void* param);
 
-int cerebral_wars_testbench(){
+double player_rate[NB_PLAYERS] = {0,0};
+int explosion_location = NB_LEDS/2;
+char alive = 0x01;
+
+int start_cerebral_wars(){
 	
+	pthread_t cereb_loop;
+	pthread_attr_t attr;
+	char res;
 
+	/*configure threads*/
+	res = pthread_attr_init(&attr);
+	if (res != 0)
+		return EXIT_FAILURE;
+	
+	alive = 0x01;
+	
+	/*configure threads*/
+	pthread_create(&cereb_loop, &attr,
+				   cereb_strip_loop, NULL);
+	
+	return EXIT_SUCCESS;
+}
+
+void stop_cerebral_wars(){
+	alive = 0x00;
+}
+
+
+void paint_explosion(pixel_t* buffer){
+	
+	int i=0;
+	int address=0;
+	
+	/*paint explosion on top*/
+	for(i=0;i<EXPLOSION_SIZE;i++){
+		
+		address = explosion_location-EXPLOSION_SIZE/2 + i;
+		
+		if(((float)rand()/(float)RAND_MAX)>explosion_animation_kernel[i]){
+			
+			buffer[address].red = explosion_kernel[i];
+			buffer[address].green = explosion_kernel[i];
+			buffer[address].blue = explosion_kernel[i];
+		}else{
+			buffer[address].red = 0x00;
+			buffer[address].green = 0x00;
+			buffer[address].blue = 0x00;
+		}
+	}
+}
+
+
+void* cereb_strip_loop(void* param){
+	
+	
 	/*define buffer*/
 	pixel_t buffer[NB_LEDS];
 	int i;
 	int spi_driver;
 	unsigned char particle_counter[2] = {0x00,0x00};
 	static uint32_t speed = 1000000;
-	int explosion_location = NB_LEDS/2;
 	int red_update_counter = RED_UPDATE_PERIOD;
 	int blue_update_counter = BLUE_UPDATE_PERIOD;
+	
 	
 	/*configure spi driver*/
 	spi_driver = open("/dev/spidev0.0",O_RDWR);
@@ -71,7 +126,7 @@ int cerebral_wars_testbench(){
 	
 	memset(buffer,0,sizeof(pixel_t)*NB_LEDS);
 	
-	while(1){
+	while(alive){
 		
 		if(red_update_counter<=0){
 			red_update_counter = RED_UPDATE_PERIOD;
@@ -99,7 +154,7 @@ int cerebral_wars_testbench(){
 				buffer[0].blue = 0;
 				
 				/*else roll a dice to determine if a new particule needs to be spawned*/
-				if(((float)rand()/(float)RAND_MAX)>0.66){
+				if(((float)rand()/(float)RAND_MAX)>player_rate[PLAYER_1]){
 					particle_counter[BEGIN] = (PARTICLE_LENGTH-1);
 					
 				}
@@ -107,7 +162,6 @@ int cerebral_wars_testbench(){
 		}else{
 			red_update_counter--;
 		}
-		
 		
 		if(blue_update_counter<=0){
 			blue_update_counter = BLUE_UPDATE_PERIOD;
@@ -119,7 +173,6 @@ int cerebral_wars_testbench(){
 				buffer[i-1].green = buffer[i].green;
 				buffer[i-1].blue = buffer[i].blue;
 			}
-			
 			
 			/*check if a particle is being placed at the end*/
 			if(particle_counter[END]>0){
@@ -136,7 +189,7 @@ int cerebral_wars_testbench(){
 				buffer[NB_LEDS-1].blue = 0;
 				
 				/*else roll a dice to determine if a new particule needs to be spawned*/
-				if(((float)rand()/(float)RAND_MAX)>0.66){
+				if(((float)rand()/(float)RAND_MAX)>player_rate[PLAYER_2]){
 					particle_counter[END] = (PARTICLE_LENGTH-1);
 					
 				}
@@ -146,39 +199,24 @@ int cerebral_wars_testbench(){
 		}
 		
 		/*paint the explosion*/
-		paint_explosion(buffer, explosion_location);
+		paint_explosion(buffer);
 		
 		/*push it down the SPI*/
 		write(spi_driver, buffer, NB_LEDS*sizeof(pixel_t));
 		
 		usleep(15000);	
 	}
-	
-	
-	return EXIT_SUCCESS;
+	return NULL;
 }
 
-
-void paint_explosion(pixel_t* buffer, int explosion_location){
-	
-	int i=0;
-	int address=0;
-	
-	/*paint explosion on top*/
-	for(i=0;i<EXPLOSION_SIZE;i++){
-		
-		address = explosion_location-EXPLOSION_SIZE/2 + i;
-		
-		if(((float)rand()/(float)RAND_MAX)>explosion_animation_kernel[i]){
-			
-			buffer[address].red = explosion_kernel[i];
-			buffer[address].green = explosion_kernel[i];
-			buffer[address].blue = explosion_kernel[i];
-		}else{
-			buffer[address].red = 0x00;
-			buffer[address].green = 0x00;
-			buffer[address].blue = 0x00;
-		}
-	}
+void set_player_1_rate(double rate){
+	player_rate[PLAYER_1] = rate;
 }
 
+void set_player_2_rate(double rate){
+	player_rate[PLAYER_2] = rate;
+}
+
+void set_explosion_location(double relative_position){
+	explosion_location = (NB_LEDS*relative_position);
+}

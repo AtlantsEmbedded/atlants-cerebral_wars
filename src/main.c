@@ -88,7 +88,7 @@ int main(int argc, char *argv[])
 	print_banner();
 	
 	
-	cerebral_wars_testbench();
+	start_cerebral_wars();
 	
 	
 	/*read the xml*/
@@ -177,6 +177,9 @@ int main(int argc, char *argv[])
 		
 		/*update buzzer state*/
 		set_buzzer_state(running_avg);
+		
+		set_player_1_rate(0.66);
+		set_player_2_rate(0.66);
 		
 		/*show sample value on console*/
 		printf("sample value: %i\n",(int)running_avg);
