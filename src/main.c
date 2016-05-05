@@ -190,7 +190,7 @@ int main(int argc, char *argv[])
 		set_buzzer_state(running_avg);
 		set_player_1_rate(adjusted_sample[PLAYER_1]);
 		set_player_2_rate(adjusted_sample[PLAYER_2]);
-		set_explosion_location(0.66);
+		set_explosion_location(integrated_diff);
 		
 		/*show sample value on console*/
 		printf("sample value: %i\n",(int)running_avg);

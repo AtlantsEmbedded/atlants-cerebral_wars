@@ -331,7 +331,7 @@ void* cereb_train_loop(void* param){
 			if(particle_counter[BEGIN]>0){
 				
 				buffer[explosion_location-1].red = 0;
-				buffer[explosion_location-1].green = 1;
+				buffer[explosion_location-1].green = particle_kernel[particle_counter[BEGIN]];
 				buffer[explosion_location-1].blue = 0;
 				
 				particle_counter[BEGIN]--;
@@ -343,8 +343,7 @@ void* cereb_train_loop(void* param){
 				
 				/*else roll a dice to determine if a new particule needs to be spawned*/
 				if(((float)rand()/(float)RAND_MAX)> 0.66|| iteration_count==0){
-					particle_counter[END] = (PARTICLE_LENGTH-1);
-					
+					particle_counter[BEGIN] = (PARTICLE_LENGTH-1);
 				}
 			}	
 		}else{
@@ -352,8 +351,8 @@ void* cereb_train_loop(void* param){
 		}
 		
 		/*paint the explosion, after particles have met in the middle*/
-		if(iteration_count>NB_LEDS/2)
-			paint_explosion(buffer);
+		if(iteration_count>NB_LEDS/2){
+		}
 		else{
 			iteration_count++;
 		}
