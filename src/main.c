@@ -184,8 +184,8 @@ int main(int argc, char *argv[])
 			feature_proc[PLAYER_2].sample = feature_proc[PLAYER_2].sample+0.2;
 			
 			/*average over recent history*/
-			adjusted_sample[PLAYER_1] = (float)0.67*feature_proc[PLAYER_1].sample+0.33*adjusted_sample[PLAYER_1];
-			adjusted_sample[PLAYER_2] = (float)0.67*feature_proc[PLAYER_2].sample+0.33*adjusted_sample[PLAYER_2];
+			adjusted_sample[PLAYER_1] = (float)0.5*feature_proc[PLAYER_1].sample+0.5*adjusted_sample[PLAYER_1];
+			adjusted_sample[PLAYER_2] = (float)0.5*feature_proc[PLAYER_2].sample+0.5*adjusted_sample[PLAYER_2];
 			
 			/*report adjusted value*/
 			printf("Player1.adjsample: %.3f\n",adjusted_sample[PLAYER_1]);
