@@ -181,7 +181,7 @@ int main(int argc, char *argv[])
 			adjusted_sample[PLAYER_2] = ((float)feature_proc[PLAYER_2].sample);
 			
 			/*stub for tests*/
-			adjusted_sample[PLAYER_2] = adjusted_sample[PLAYER_1]+1;
+			adjusted_sample[PLAYER_2] = adjusted_sample[PLAYER_1]*1.5;
 			
 			/*integrated the difference*/
 			integrated_diff += (adjusted_sample[PLAYER_2]-adjusted_sample[PLAYER_1])/100;
@@ -202,7 +202,9 @@ int main(int argc, char *argv[])
 			
 			/*show sample value on console*/
 			printf("sample value: %i\n",(int)running_avg);
+			
 		}else{
+			
 			set_player_1_rate(0.5);
 			set_player_2_rate(0.5);
 			set_explosion_location(integrated_diff);
@@ -220,6 +222,9 @@ int main(int argc, char *argv[])
 		}
 		
 	}
+	
+	stop_cerebral_wars();
+	
 	
 	printf("Finished\n");
 	

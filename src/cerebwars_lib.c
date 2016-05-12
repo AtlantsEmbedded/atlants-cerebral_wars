@@ -31,7 +31,7 @@
 #define PLAYER_1 0
 #define PLAYER_2 1
 
-#define RED_UPDATE_PERIOD 4
+#define RED_UPDATE_PERIOD 2
 #define BLUE_UPDATE_PERIOD 2
 
 typedef struct pixel_s{
@@ -142,8 +142,8 @@ void* cereb_strip_loop(void* param){
 	int spi_driver;
 	unsigned char particle_counter[2] = {0x00,0x00};
 	static uint32_t speed = 1000000;
-	int red_update_counter = RED_UPDATE_PERIOD;
-	int blue_update_counter = BLUE_UPDATE_PERIOD;
+	int red_update_counter = 0;
+	int blue_update_counter = 0;
 	int iteration_count = 0;
 	
 	
@@ -226,7 +226,7 @@ void* cereb_strip_loop(void* param){
 		}
 		
 		/*paint the explosion, after particles have met in the middle*/
-		if(iteration_count>NB_LEDS/2)
+		if(iteration_count > (NB_LEDS/2)*RED_UPDATE_PERIOD)
 			paint_explosion(buffer);
 		else{
 			iteration_count++;
@@ -364,6 +364,11 @@ void* cereb_train_loop(void* param){
 		
 		usleep(15000);	
 	}
+	
+	/*Turn off the LED strip*/
+	memset(buffer,0,sizeof(pixel_t)*NB_LEDS);
+	write(spi_driver, buffer, NB_LEDS*sizeof(pixel_t));
+	usleep(1500);	
 	
 	close(spi_driver);
 	
