@@ -56,7 +56,7 @@ void* cereb_strip_loop(void* param);
 void* cereb_train_loop(void* param);
 
 double player_rate[NB_PLAYERS] = {0.5,0.5};
-double player_period[NB_PLAYERS] = {RED_UPDATE_PERIOD,BLUE_UPDATE_PERIOD};
+int player_period[NB_PLAYERS] = {RED_UPDATE_PERIOD,BLUE_UPDATE_PERIOD};
 int explosion_location = NB_LEDS/2;
 char alive = 0x01;
 
@@ -192,7 +192,7 @@ void* cereb_strip_loop(void* param){
 		}
 		
 		if(blue_update_counter<=0){
-			red_update_counter = player_period[PLAYER_2];
+			blue_update_counter = player_period[PLAYER_2];
 			
 			/*from the end to explosion*/
 			/*roll back by bringing encountered values forward*/
@@ -265,13 +265,13 @@ void* cereb_strip_loop(void* param){
 
 void set_player_1_rate(double rate){
 	//player_rate[PLAYER_1] = rate;
-	player_period[PLAYER_1] = round((1-rate)*6);
+	player_period[PLAYER_1] = round((1-rate)*5)+1;
 	
 }
 
 void set_player_2_rate(double rate){
 	//player_rate[PLAYER_2] = rate;
-	player_period[PLAYER_2] = round((1-rate)*6);
+	player_period[PLAYER_2] = round((1-rate)*5)+1;
 }
 
 void set_explosion_location(double relative_position){
