@@ -177,7 +177,7 @@ int main(int argc, char *argv[])
 			pthread_join(threads_array[PLAYER_2], NULL);		
 			
 			/*adjust the sample value to the pitch scale*/
-			printf("Player1: %.3f\n",adjusted_sample[PLAYER_1]/4);
+			printf("Player1: %.3f\n",feature_proc[PLAYER_1].sample/4);
 			
 			adjusted_sample[PLAYER_1] = (float)0.67*feature_proc[PLAYER_1].sample/4+0.33*adjusted_sample[PLAYER_1];
 			adjusted_sample[PLAYER_2] = (float)0.67*feature_proc[PLAYER_2].sample/4+0.33*adjusted_sample[PLAYER_2];
