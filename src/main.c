@@ -177,8 +177,8 @@ int main(int argc, char *argv[])
 			pthread_join(threads_array[PLAYER_2], NULL);		
 			
 			/*adjust the sample value to the pitch scale*/
-			adjusted_sample[PLAYER_1] = ((float)feature_proc[PLAYER_1].sample);
-			adjusted_sample[PLAYER_2] = ((float)feature_proc[PLAYER_2].sample);
+			adjusted_sample[PLAYER_1] = (float)0.67*feature_proc[PLAYER_1].sample)+0.33*adjusted_sample[PLAYER_1];
+			adjusted_sample[PLAYER_2] = (float)0.67*feature_proc[PLAYER_2].sample)+0.33*adjusted_sample[PLAYER_2];
 			
 			/*stub for tests*/
 			adjusted_sample[PLAYER_2] = adjusted_sample[PLAYER_1]*1.5;

@@ -264,12 +264,12 @@ void* cereb_strip_loop(void* param){
 }
 
 void set_player_1_rate(double rate){
-	player_period[PLAYER_1] = round((1-rate)*7)+3;
+	player_period[PLAYER_1] = round((1-rate)*6)+2;
 	
 }
 
 void set_player_2_rate(double rate){
-	player_period[PLAYER_2] = round((1-rate)*7)+3;
+	player_period[PLAYER_2] = round((1-rate)*6)+2;
 }
 
 void set_explosion_location(double relative_position){
