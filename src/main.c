@@ -207,7 +207,7 @@ int main(int argc, char *argv[])
 			}
 			
 			/*integrated the difference*/
-			integrated_diff += (adjusted_sample[PLAYER_1]-adjusted_sample[PLAYER_2]);
+			integrated_diff += (adjusted_sample[PLAYER_1]-adjusted_sample[PLAYER_2])/75;
 			
 			/*report the current value*/
 			printf("integrated_diff: %.3f\n",integrated_diff);
