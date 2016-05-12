@@ -237,6 +237,11 @@ void* cereb_strip_loop(void* param){
 		usleep(15000);	
 	}
 	
+	/*Turn off the LED strip*/
+	memset(buffer,0,sizeof(pixel_t)*NB_LEDS);
+	write(spi_driver, buffer, NB_LEDS*sizeof(pixel_t));
+	usleep(1500);	
+	
 	close(spi_driver);
 	return NULL;
 }

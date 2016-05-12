@@ -69,7 +69,7 @@ int main(int argc, char *argv[])
 {	
 	/*freq index*/
 	char res;
-	char game_started;
+	char game_started = 0x00;
 	double cpu_time_used;
 	double running_avg = 0;
 	double adjusted_sample[NB_PLAYERS] = {0};
@@ -177,10 +177,14 @@ int main(int argc, char *argv[])
 			pthread_join(threads_array[PLAYER_2], NULL);		
 			
 			/*adjust the sample value to the pitch scale*/
-			adjusted_sample[PLAYER_1] = ((float)feature_proc[PLAYER_1].sample/4);
-			adjusted_sample[PLAYER_2] = ((float)feature_proc[PLAYER_2].sample/4);
+			adjusted_sample[PLAYER_1] = ((float)feature_proc[PLAYER_1].sample);
+			adjusted_sample[PLAYER_2] = ((float)feature_proc[PLAYER_2].sample);
 			
-			integrated_diff += (adjusted_sample[PLAYER_2]*30-adjusted_sample[PLAYER_1])/100;
+			/*stub for tests*/
+			adjusted_sample[PLAYER_2] = adjusted_sample[PLAYER_1]+1;
+			
+			/*integrated the difference*/
+			integrated_diff += (adjusted_sample[PLAYER_2]-adjusted_sample[PLAYER_1])/100;
 			
 			if(adjusted_sample[PLAYER_1]>1){
 				adjusted_sample[PLAYER_1] = 1;
