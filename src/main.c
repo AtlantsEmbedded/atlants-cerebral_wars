@@ -177,16 +177,15 @@ int main(int argc, char *argv[])
 			pthread_join(threads_array[PLAYER_2], NULL);		
 			
 			/*adjust the sample value to the pitch scale*/
-			printf("Player1: %.3f\n",feature_proc[PLAYER_1].sample/4);
+			printf("Player1.sample: %.3f\n",feature_proc[PLAYER_1].sample/3);
 			
-			adjusted_sample[PLAYER_1] = (float)0.67*feature_proc[PLAYER_1].sample/4+0.33*adjusted_sample[PLAYER_1];
-			adjusted_sample[PLAYER_2] = (float)0.67*feature_proc[PLAYER_2].sample/4+0.33*adjusted_sample[PLAYER_2];
+			adjusted_sample[PLAYER_1] = (float)0.67*feature_proc[PLAYER_1].sample/3+0.33*adjusted_sample[PLAYER_1];
+			adjusted_sample[PLAYER_2] = (float)0.67*feature_proc[PLAYER_2].sample/3+0.33*adjusted_sample[PLAYER_2];
+			
+			printf("Player1.adjsample: %.3f\n",adjusted_sample[PLAYER_1]);
 			
 			/*stub for tests*/
 			adjusted_sample[PLAYER_2] = adjusted_sample[PLAYER_1]*1.5;
-			
-			/*integrated the difference*/
-			integrated_diff += (adjusted_sample[PLAYER_2]-adjusted_sample[PLAYER_1])/100;
 			
 			if(adjusted_sample[PLAYER_1]>1){
 				adjusted_sample[PLAYER_1] = 1;
@@ -195,6 +194,11 @@ int main(int argc, char *argv[])
 			if(adjusted_sample[PLAYER_2]>1){
 				adjusted_sample[PLAYER_2] = 1;
 			}
+			
+			/*integrated the difference*/
+			integrated_diff += (adjusted_sample[PLAYER_1]-adjusted_sample[PLAYER_2])/100;
+			
+			printf("integrated_diff: %.3f\n",integrated_diff);
 			
 			/*update buzzer state*/
 			set_buzzer_state(running_avg);
@@ -223,6 +227,7 @@ int main(int argc, char *argv[])
 	}
 	
 	stop_cerebral_wars();
+	sleep(1);	
 	
 	
 	printf("Finished\n");
