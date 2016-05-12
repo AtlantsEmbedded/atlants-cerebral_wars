@@ -211,7 +211,7 @@ int main(int argc, char *argv[])
 		/*check if one of the stop conditions is met*/
 		if(app_config->test_duration < cpu_time_used){
 			task_running = 0x00;
-		else if(GAME_START_DELAY < cpu_time_used){
+		}else if(GAME_START_DELAY < cpu_time_used){
 			game_started = 0x01;
 		}
 		
