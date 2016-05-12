@@ -43,6 +43,8 @@
 #define PLAYER_1_SEM_KEY 1234
 #define PLAYER_2_SEM_KEY 8921
 
+#define GAME_START_DELAY 10
+
 
 /*function prototypes*/
 static void print_banner();
@@ -67,6 +69,7 @@ int main(int argc, char *argv[])
 {	
 	/*freq index*/
 	char res;
+	char game_started;
 	double cpu_time_used;
 	double running_avg = 0;
 	double adjusted_sample[NB_PLAYERS] = {0};
@@ -161,39 +164,45 @@ int main(int argc, char *argv[])
 		
 	/*run the test*/
 	while(task_running){
-	
-		/*get a normalized sample*/
-		pthread_create(&(threads_array[PLAYER_1]), &attr,
-					   get_sample, (void*)&(feature_proc[PLAYER_1]));
-		pthread_create(&(threads_array[PLAYER_2]), &attr,
-					   get_sample, (void*)&(feature_proc[PLAYER_2]));
-					   
-		pthread_join(threads_array[PLAYER_1], NULL);		
-		pthread_join(threads_array[PLAYER_2], NULL);		
 		
-		/*adjust the sample value to the pitch scale*/
-		adjusted_sample[PLAYER_1] = ((float)feature_proc[PLAYER_1].sample/4);
-		adjusted_sample[PLAYER_2] = ((float)feature_proc[PLAYER_2].sample/4);
+		if(game_started){
 		
-		integrated_diff += (adjusted_sample[PLAYER_2]*30-adjusted_sample[PLAYER_1])/100;
-		
-		if(adjusted_sample[PLAYER_1]>1){
-			adjusted_sample[PLAYER_1] = 1;
+			/*get a normalized sample*/
+			pthread_create(&(threads_array[PLAYER_1]), &attr,
+						   get_sample, (void*)&(feature_proc[PLAYER_1]));
+			pthread_create(&(threads_array[PLAYER_2]), &attr,
+						   get_sample, (void*)&(feature_proc[PLAYER_2]));
+						   
+			pthread_join(threads_array[PLAYER_1], NULL);		
+			pthread_join(threads_array[PLAYER_2], NULL);		
+			
+			/*adjust the sample value to the pitch scale*/
+			adjusted_sample[PLAYER_1] = ((float)feature_proc[PLAYER_1].sample/4);
+			adjusted_sample[PLAYER_2] = ((float)feature_proc[PLAYER_2].sample/4);
+			
+			integrated_diff += (adjusted_sample[PLAYER_2]*30-adjusted_sample[PLAYER_1])/100;
+			
+			if(adjusted_sample[PLAYER_1]>1){
+				adjusted_sample[PLAYER_1] = 1;
+			}
+			
+			if(adjusted_sample[PLAYER_2]>1){
+				adjusted_sample[PLAYER_2] = 1;
+			}
+			
+			/*update buzzer state*/
+			set_buzzer_state(running_avg);
+			set_player_1_rate(adjusted_sample[PLAYER_1]);
+			set_player_2_rate(adjusted_sample[PLAYER_2]);
+			set_explosion_location(integrated_diff);
+			
+			/*show sample value on console*/
+			printf("sample value: %i\n",(int)running_avg);
+		}else{
+			set_player_1_rate(0.5);
+			set_player_2_rate(0.5);
+			set_explosion_location(integrated_diff);
 		}
-		
-		if(adjusted_sample[PLAYER_2]>1){
-			adjusted_sample[PLAYER_2] = 1;
-		}
-		
-		
-		/*update buzzer state*/
-		set_buzzer_state(running_avg);
-		set_player_1_rate(adjusted_sample[PLAYER_1]);
-		set_player_2_rate(adjusted_sample[PLAYER_2]);
-		set_explosion_location(integrated_diff);
-		
-		/*show sample value on console*/
-		printf("sample value: %i\n",(int)running_avg);
 		
 		/*get current time*/
 		end = clock();
@@ -202,6 +211,8 @@ int main(int argc, char *argv[])
 		/*check if one of the stop conditions is met*/
 		if(app_config->test_duration < cpu_time_used){
 			task_running = 0x00;
+		else if(GAME_START_DELAY < cpu_time_used){
+			game_started = 0x01;
 		}
 		
 	}
