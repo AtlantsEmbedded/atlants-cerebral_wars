@@ -31,8 +31,8 @@
 #define PLAYER_1 0
 #define PLAYER_2 1
 
-#define RED_UPDATE_PERIOD 3
-#define BLUE_UPDATE_PERIOD 3
+#define RED_UPDATE_PERIOD 3*3
+#define BLUE_UPDATE_PERIOD 3*3
 
 typedef struct pixel_s{
 	
@@ -251,7 +251,7 @@ void* cereb_strip_loop(void* param){
 		/*push it down the SPI*/
 		write(spi_driver, buffer, NB_LEDS*sizeof(pixel_t));
 		
-		usleep(15000);	
+		usleep(5000);	
 	}
 	
 	/*Turn off the LED strip*/
@@ -265,13 +265,13 @@ void* cereb_strip_loop(void* param){
 
 void set_player_1_rate(double rate){
 	//player_rate[PLAYER_1] = rate;
-	player_period[PLAYER_1] = round((1-rate)*5)+1;
+	player_period[PLAYER_1] = round((1-rate)*(3*3))+3;
 	
 }
 
 void set_player_2_rate(double rate){
 	//player_rate[PLAYER_2] = rate;
-	player_period[PLAYER_2] = round((1-rate)*5)+1;
+	player_period[PLAYER_2] = round((1-rate)*(3*3))+3;
 }
 
 void set_explosion_location(double relative_position){
@@ -382,7 +382,7 @@ void* cereb_train_loop(void* param){
 		/*push it down the SPI*/
 		write(spi_driver, buffer, NB_LEDS*sizeof(pixel_t));
 		
-		usleep(15000);	
+		usleep(5000);	
 	}
 	
 	/*Turn off the LED strip*/
