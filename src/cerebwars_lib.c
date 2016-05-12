@@ -55,7 +55,7 @@ void paint_explosion(pixel_t* buffer);
 void* cereb_strip_loop(void* param);
 void* cereb_train_loop(void* param);
 
-double player_rate[NB_PLAYERS] = {0.5,0.5};
+double player_rate[NB_PLAYERS] = {0.33,0.33};
 int player_period[NB_PLAYERS] = {RED_UPDATE_PERIOD,BLUE_UPDATE_PERIOD};
 int explosion_location = NB_LEDS/2;
 char alive = 0x01;
@@ -264,14 +264,12 @@ void* cereb_strip_loop(void* param){
 }
 
 void set_player_1_rate(double rate){
-	//player_rate[PLAYER_1] = rate;
-	player_period[PLAYER_1] = round((1-rate)*(3*3))+3;
+	player_period[PLAYER_1] = round((1-rate)*7)+3;
 	
 }
 
 void set_player_2_rate(double rate){
-	//player_rate[PLAYER_2] = rate;
-	player_period[PLAYER_2] = round((1-rate)*(3*3))+3;
+	player_period[PLAYER_2] = round((1-rate)*7)+3;
 }
 
 void set_explosion_location(double relative_position){
