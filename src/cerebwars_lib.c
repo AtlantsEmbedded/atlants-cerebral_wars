@@ -31,8 +31,8 @@
 #define PLAYER_1 0
 #define PLAYER_2 1
 
-#define RED_UPDATE_PERIOD 2
-#define BLUE_UPDATE_PERIOD 2
+#define RED_UPDATE_PERIOD 3
+#define BLUE_UPDATE_PERIOD 3
 
 typedef struct pixel_s{
 	
@@ -42,7 +42,7 @@ typedef struct pixel_s{
 }pixel_t;
 
 
-const unsigned char particle_kernel[PARTICLE_LENGTH] = {0, 25, 50, 255};
+const unsigned char particle_kernel[PARTICLE_LENGTH] = {0, 15, 30, 255};
 const unsigned char player_mask[NB_PLAYERS][NB_COLORS] = {{1, 0, 0},
 														  {0, 0, 1}};
 
@@ -55,7 +55,8 @@ void paint_explosion(pixel_t* buffer);
 void* cereb_strip_loop(void* param);
 void* cereb_train_loop(void* param);
 
-double player_rate[NB_PLAYERS] = {0,0};
+double player_rate[NB_PLAYERS] = {0.5,0.5};
+double player_period[NB_PLAYERS] = {RED_UPDATE_PERIOD,BLUE_UPDATE_PERIOD};
 int explosion_location = NB_LEDS/2;
 char alive = 0x01;
 
@@ -145,7 +146,7 @@ void* cereb_strip_loop(void* param){
 	int red_update_counter = 0;
 	int blue_update_counter = 0;
 	int iteration_count = 0;
-	
+	char exploding = 0x00;
 	
 	/*configure spi driver*/
 	spi_driver = open("/dev/spidev0.0",O_RDWR);
@@ -156,7 +157,7 @@ void* cereb_strip_loop(void* param){
 	while(alive){
 		
 		if(red_update_counter<=0){
-			red_update_counter = RED_UPDATE_PERIOD;
+			red_update_counter = player_period[PLAYER_1];
 			
 			/*from the start to explosion*/
 			for(i=explosion_location;i>=0;i--){
@@ -191,7 +192,7 @@ void* cereb_strip_loop(void* param){
 		}
 		
 		if(blue_update_counter<=0){
-			blue_update_counter = BLUE_UPDATE_PERIOD;
+			red_update_counter = player_period[PLAYER_2];
 			
 			/*from the end to explosion*/
 			/*roll back by bringing encountered values forward*/
@@ -216,7 +217,7 @@ void* cereb_strip_loop(void* param){
 				buffer[NB_LEDS-1].blue = 0;
 				
 				/*else roll a dice to determine if a new particule needs to be spawned*/
-				if(((float)rand()/(float)RAND_MAX)>player_rate[PLAYER_2] || iteration_count==0){
+				if(((float)rand()/(float)RAND_MAX)>player_rate[PLAYER_2]){
 					particle_counter[END] = (PARTICLE_LENGTH-1);
 					
 				}
@@ -225,12 +226,28 @@ void* cereb_strip_loop(void* param){
 			blue_update_counter--;
 		}
 		
-		/*paint the explosion, after particles have met in the middle*/
-		if(iteration_count > (NB_LEDS/2)*RED_UPDATE_PERIOD)
-			paint_explosion(buffer);
-		else{
-			iteration_count++;
+		exploding = 0;
+		
+		/*detect particles in explosion range*/
+		for(i=0;i<EXPLOSION_SIZE/2;i++){
+			if(explosion_location+i>=0 && explosion_location+i < NB_LEDS){
+				if(buffer[explosion_location+i].red || buffer[explosion_location+i].blue){
+					exploding=0x01;
+				}
+			}
+			
+			if(explosion_location-i>=0 && explosion_location-i < NB_LEDS){
+				if(buffer[explosion_location-i].red || buffer[explosion_location-i].blue){
+					exploding=0x01;
+				}
+			}
 		}
+		
+		/*paint the explosion, if it's exploding*/
+		if(exploding)
+			paint_explosion(buffer);
+			
+			
 		/*push it down the SPI*/
 		write(spi_driver, buffer, NB_LEDS*sizeof(pixel_t));
 		
@@ -247,11 +264,14 @@ void* cereb_strip_loop(void* param){
 }
 
 void set_player_1_rate(double rate){
-	player_rate[PLAYER_1] = rate;
+	//player_rate[PLAYER_1] = rate;
+	player_period[PLAYER_1] = round((1-rate)*6);
+	
 }
 
 void set_player_2_rate(double rate){
-	player_rate[PLAYER_2] = rate;
+	//player_rate[PLAYER_2] = rate;
+	player_period[PLAYER_2] = round((1-rate)*6);
 }
 
 void set_explosion_location(double relative_position){
