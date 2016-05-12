@@ -176,28 +176,40 @@ int main(int argc, char *argv[])
 			pthread_join(threads_array[PLAYER_1], NULL);		
 			pthread_join(threads_array[PLAYER_2], NULL);		
 			
-			/*adjust the sample value to the pitch scale*/
+			/*show the value*/
 			printf("Player1.sample: %.3f\n",feature_proc[PLAYER_1].sample);
 			
+			/*add little offset to allow for negative values*/
+			feature_proc[PLAYER_1].sample = feature_proc[PLAYER_1].sample+0.2;
+			feature_proc[PLAYER_2].sample = feature_proc[PLAYER_2].sample+0.2;
+			
+			/*average over recent history*/
 			adjusted_sample[PLAYER_1] = (float)0.67*feature_proc[PLAYER_1].sample+0.33*adjusted_sample[PLAYER_1];
 			adjusted_sample[PLAYER_2] = (float)0.67*feature_proc[PLAYER_2].sample+0.33*adjusted_sample[PLAYER_2];
 			
+			/*report adjusted value*/
 			printf("Player1.adjsample: %.3f\n",adjusted_sample[PLAYER_1]);
 			
 			/*stub for tests*/
 			adjusted_sample[PLAYER_2] = adjusted_sample[PLAYER_1]/2;
 			
+			/*make sure that values are within the range [0,1]*/
 			if(adjusted_sample[PLAYER_1]>1){
 				adjusted_sample[PLAYER_1] = 1;
+			}else if(adjusted_sample[PLAYER_1]<0){
+				adjusted_sample[PLAYER_1] = 0;
 			}
 			
 			if(adjusted_sample[PLAYER_2]>1){
 				adjusted_sample[PLAYER_2] = 1;
+			}else if(adjusted_sample[PLAYER_2]<0){
+				adjusted_sample[PLAYER_2] = 0;
 			}
 			
 			/*integrated the difference*/
-			integrated_diff += (adjusted_sample[PLAYER_1]-adjusted_sample[PLAYER_2])/100;
+			integrated_diff += (adjusted_sample[PLAYER_1]-adjusted_sample[PLAYER_2]);
 			
+			/*report the current value*/
 			printf("integrated_diff: %.3f\n",integrated_diff);
 			
 			/*update buzzer state*/
