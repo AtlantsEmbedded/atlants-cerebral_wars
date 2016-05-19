@@ -214,14 +214,14 @@ int main(int argc, char *argv[])
 			
 			/*update buzzer state*/
 			set_buzzer_state(running_avg);
-			set_player_1_rate(adjusted_sample[PLAYER_1]);
-			set_player_2_rate(adjusted_sample[PLAYER_2]);
+			set_player_rate(adjusted_sample[PLAYER_1],PLAYER_1);
+			set_player_rate(adjusted_sample[PLAYER_2],PLAYER_2);
 			set_explosion_location(integrated_diff);
 			
 		}else{
 			
-			set_player_1_rate(0.5);
-			set_player_2_rate(0.5);
+			set_player_rate(0.5,PLAYER_1);
+			set_player_rate(0.5,PLAYER_2);
 			set_explosion_location(integrated_diff);
 		}
 		
