@@ -8,16 +8,10 @@
 #include "gpio_wrapper.h"
 
 
-#define	START_DEMO	1
+#define	START_DEMO 0
 
 
 void setup_gpios(void){
-
-	  /*check if root*/
-	  if (geteuid () != 0){
-			fprintf (stderr, "braintone need to be root to run\n") ;
-			exit (0) ;
-	  }
 
 	  /*setup the wiring pi*/
 	  if (wiringPiSetup () == -1)
@@ -36,7 +30,7 @@ void setup_gpios(void){
  */
 void wait_for_start_demo(void)
 {
-	  printf("Waiting to start "); 
+	  printf("Waiting to start\n"); 
 	  fflush(stdout);
 	  
 	  /*wait for start button to be pressed*/
