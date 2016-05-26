@@ -50,6 +50,7 @@
 static void print_banner();
 char *which_config(int argc, char **argv);
 char task_running = 0x01;
+char program_running = 0x01;
 
 int configure_feature_input(feature_input_t* feature_input, appconfig_t* app_config);
 void* train_player(void* param);
@@ -127,123 +128,138 @@ int main(int argc, char *argv[])
 	
 	/*stop beep mode*/
 	turn_off_beeper();
+	sleep(2);
 	
-	printf("About to begin training\n");
-	fflush(stdout);
-	
-	cerebral_wars_training_mode();
-	
-	/*initialize feature processing*/
-	feature_proc[PLAYER_1].nb_train_samples = app_config->training_set_size;
-	feature_proc[PLAYER_1].feature_input = &(feature_input[PLAYER_1]);
-	init_feat_processing(&(feature_proc[PLAYER_1]));
-	
-	feature_proc[PLAYER_2].nb_train_samples = app_config->training_set_size;
-	feature_proc[PLAYER_2].feature_input = &(feature_input[PLAYER_2]);
-	init_feat_processing(&(feature_proc[PLAYER_2]));
-	
+	while(program_running){	
+			
+		/*set beep mode*/
+		set_beep_mode(50, 0, 500);
 		
-	/*start training*/	
-	pthread_create(&(threads_array[PLAYER_1]), &attr,
-				   train_player, (void*)&(feature_proc[PLAYER_1]));
-	pthread_create(&(threads_array[PLAYER_2]), &attr,
-				   train_player, (void*)&(feature_proc[PLAYER_2]));
-				   
-	pthread_join(threads_array[PLAYER_1], NULL);			   
-	pthread_join(threads_array[PLAYER_2], NULL);			   
+		/*wait for button pressed*/
+		wait_for_start_demo();
+		
+		turn_off_beeper();
 	
-	stop_cerebral_wars();
 	
-	/*little pause between training and testing*/	
-	printf("About to start task\n");
-	fflush(stdout);	
-	sleep(3);	
+		printf("About to begin training\n");
+		fflush(stdout);
 		
-	start = clock();
-	start_cerebral_wars();
+		cerebral_wars_training_mode();
 		
-	/*run the test*/
-	while(task_running){
+		/*initialize feature processing*/
+		feature_proc[PLAYER_1].nb_train_samples = app_config->training_set_size;
+		feature_proc[PLAYER_1].feature_input = &(feature_input[PLAYER_1]);
+		init_feat_processing(&(feature_proc[PLAYER_1]));
 		
-		if(game_started){
+		feature_proc[PLAYER_2].nb_train_samples = app_config->training_set_size;
+		feature_proc[PLAYER_2].feature_input = &(feature_input[PLAYER_2]);
+		init_feat_processing(&(feature_proc[PLAYER_2]));
 		
-			/*get a normalized sample*/
-			pthread_create(&(threads_array[PLAYER_1]), &attr,
-						   get_sample, (void*)&(feature_proc[PLAYER_1]));
-			pthread_create(&(threads_array[PLAYER_2]), &attr,
-						   get_sample, (void*)&(feature_proc[PLAYER_2]));
-						   
-			pthread_join(threads_array[PLAYER_1], NULL);		
-			pthread_join(threads_array[PLAYER_2], NULL);		
 			
-			/*show the value*/
-			printf("Player1.sample: %.3f\n",feature_proc[PLAYER_1].sample);
+		/*start training*/	
+		pthread_create(&(threads_array[PLAYER_1]), &attr,
+					   train_player, (void*)&(feature_proc[PLAYER_1]));
+		pthread_create(&(threads_array[PLAYER_2]), &attr,
+					   train_player, (void*)&(feature_proc[PLAYER_2]));
+					   
+		pthread_join(threads_array[PLAYER_1], NULL);			   
+		pthread_join(threads_array[PLAYER_2], NULL);			   
+		
+		stop_cerebral_wars();
+		
+		/*little pause between training and testing*/	
+		printf("About to start task\n");
+		fflush(stdout);	
+		sleep(3);	
 			
-			/*add little offset to allow for negative values*/
-			feature_proc[PLAYER_1].sample = feature_proc[PLAYER_1].sample+0.2;
-			feature_proc[PLAYER_2].sample = feature_proc[PLAYER_2].sample+0.2;
+		start = clock();
+		start_cerebral_wars();
+		task_running = 0x01;
 			
-			/*average over recent history*/
-			adjusted_sample[PLAYER_1] = (float)0.5*feature_proc[PLAYER_1].sample+0.5*adjusted_sample[PLAYER_1];
-			adjusted_sample[PLAYER_2] = (float)0.5*feature_proc[PLAYER_2].sample+0.5*adjusted_sample[PLAYER_2];
+		/*run the test*/
+		while(task_running){
 			
-			/*report adjusted value*/
-			printf("Player1.adjsample: %.3f\n",adjusted_sample[PLAYER_1]);
 			
-			/*stub for tests*/
-			adjusted_sample[PLAYER_2] = adjusted_sample[PLAYER_1]/2;
+			if(game_started){
 			
-			/*make sure that values are within the range [0,1]*/
-			if(adjusted_sample[PLAYER_1]>1){
-				adjusted_sample[PLAYER_1] = 1;
-			}else if(adjusted_sample[PLAYER_1]<0){
-				adjusted_sample[PLAYER_1] = 0;
+				/*get a normalized sample*/
+				pthread_create(&(threads_array[PLAYER_1]), &attr,
+							   get_sample, (void*)&(feature_proc[PLAYER_1]));
+				pthread_create(&(threads_array[PLAYER_2]), &attr,
+							   get_sample, (void*)&(feature_proc[PLAYER_2]));
+							   
+				pthread_join(threads_array[PLAYER_1], NULL);		
+				pthread_join(threads_array[PLAYER_2], NULL);		
+				
+				/*show the value*/
+				printf("Player1.sample: %.3f\n",feature_proc[PLAYER_1].sample);
+				
+				/*add little offset to allow for negative values*/
+				feature_proc[PLAYER_1].sample = feature_proc[PLAYER_1].sample+0.2;
+				feature_proc[PLAYER_2].sample = feature_proc[PLAYER_2].sample+0.2;
+				
+				/*average over recent history*/
+				adjusted_sample[PLAYER_1] = (float)0.5*feature_proc[PLAYER_1].sample+0.5*adjusted_sample[PLAYER_1];
+				adjusted_sample[PLAYER_2] = (float)0.5*feature_proc[PLAYER_2].sample+0.5*adjusted_sample[PLAYER_2];
+				
+				/*report adjusted value*/
+				printf("Player1.adjsample: %.3f\n",adjusted_sample[PLAYER_1]);
+				
+				/*stub for tests*/
+				//adjusted_sample[PLAYER_2] = adjusted_sample[PLAYER_1]/2;
+				
+				/*make sure that values are within the range [0,1]*/
+				if(adjusted_sample[PLAYER_1]>1){
+					adjusted_sample[PLAYER_1] = 1;
+				}else if(adjusted_sample[PLAYER_1]<0){
+					adjusted_sample[PLAYER_1] = 0;
+				}
+				
+				if(adjusted_sample[PLAYER_2]>1){
+					adjusted_sample[PLAYER_2] = 1;
+				}else if(adjusted_sample[PLAYER_2]<0){
+					adjusted_sample[PLAYER_2] = 0;
+				}
+				
+				/*integrated the difference*/
+				integrated_diff += (adjusted_sample[PLAYER_1]-adjusted_sample[PLAYER_2])/75;
+				
+				/*report the current value*/
+				printf("integrated_diff: %.3f\n",integrated_diff);
+				
+				/*update buzzer state*/
+				set_buzzer_state(running_avg);
+				set_player_rate(adjusted_sample[PLAYER_1],PLAYER_1);
+				set_player_rate(adjusted_sample[PLAYER_2],PLAYER_2);
+				set_explosion_location(integrated_diff);
+				
+			}else{
+				
+				set_player_rate(0.5,PLAYER_1);
+				set_player_rate(0.5,PLAYER_2);
+				set_explosion_location(integrated_diff);
 			}
 			
-			if(adjusted_sample[PLAYER_2]>1){
-				adjusted_sample[PLAYER_2] = 1;
-			}else if(adjusted_sample[PLAYER_2]<0){
-				adjusted_sample[PLAYER_2] = 0;
+			/*get current time*/
+			end = clock();
+			cpu_time_used = ((double) (end - start)) / (double)CLOCKS_PER_SEC * 100;
+			
+			/*check if one of the stop conditions is met*/
+			if(app_config->test_duration < cpu_time_used){
+				task_running = 0x00;
+			}else if(GAME_START_DELAY < cpu_time_used){
+				game_started = 0x01;
 			}
 			
-			/*integrated the difference*/
-			integrated_diff += (adjusted_sample[PLAYER_1]-adjusted_sample[PLAYER_2])/75;
-			
-			/*report the current value*/
-			printf("integrated_diff: %.3f\n",integrated_diff);
-			
-			/*update buzzer state*/
-			set_buzzer_state(running_avg);
-			set_player_rate(adjusted_sample[PLAYER_1],PLAYER_1);
-			set_player_rate(adjusted_sample[PLAYER_2],PLAYER_2);
-			set_explosion_location(integrated_diff);
-			
-		}else{
-			
-			set_player_rate(0.5,PLAYER_1);
-			set_player_rate(0.5,PLAYER_2);
-			set_explosion_location(integrated_diff);
 		}
 		
-		/*get current time*/
-		end = clock();
-		cpu_time_used = ((double) (end - start)) / (double)CLOCKS_PER_SEC * 100;
+		stop_cerebral_wars();
+		sleep(1);
 		
-		/*check if one of the stop conditions is met*/
-		if(app_config->test_duration < cpu_time_used){
-			task_running = 0x00;
-		}else if(GAME_START_DELAY < cpu_time_used){
-			game_started = 0x01;
-		}
+		printf("Finished\n");
 		
 	}
-	
-	stop_cerebral_wars();
-	sleep(1);	
-	
-	
-	printf("Finished\n");
-	
+
 	/*clean up app*/	
 	ipc_comm_cleanup(&(ipc_comm[PLAYER_1]));
 	clean_up_feat_processing(&(feature_proc[PLAYER_1]));

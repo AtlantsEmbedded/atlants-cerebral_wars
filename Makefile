@@ -35,7 +35,7 @@ else
                		-Iinclude
 endif
 
-LIBS          =-L$(STAGING_DIR)/lib -L$(STAGING_DIR)/usr/lib -lm -lpthread -lezxml -lbuzzer -lstats -lglib-2.0 $(ARCH_LIBS)
+LIBS          =-L$(STAGING_DIR)/lib -L$(STAGING_DIR)/usr/lib -lm -lpthread -lezxml -lwiringPi -lbuzzer -lstats -lglib-2.0 $(ARCH_LIBS)
 AR            = ar cqs
 RANLIB        = 
 TAR           = tar -cf
@@ -68,6 +68,7 @@ SOURCES       = src/main.c \
 				src/ipc_status_comm.c \
 				src/xml.c \
 				src/cerebwars_lib.c \
+				src/gpio_wrapper.c \
 				src/supported_feature_input/fake_feature_generator.c \
 				src/supported_feature_input/shm_rd_buf.c
 OBJECTS       = src/main.o \
@@ -77,6 +78,7 @@ OBJECTS       = src/main.o \
 				src/ipc_status_comm.o \
 				src/xml.o \
 				src/cerebwars_lib.o \
+				src/gpio_wrapper.o \
 				src/supported_feature_input/fake_feature_generator.o \
 				src/supported_feature_input/shm_rd_buf.o
 DESTDIR       = #avoid trailing-slash linebreak
@@ -142,6 +144,9 @@ cerebwars.o: src/cerebwars.c
 	
 xml.o: src/xml.c 
 	$(CC) -c $(CFLAGS) $(INCPATH) -o xml.o src/xml.c
+
+gpio_wrapper.o: src/gpio_wrapper.c 
+	$(CC) -c $(CFLAGS) $(INCPATH) -o gpio_wrapper.o src/gpio_wrapper.c
 	
 fake_feature_generator.o: src/supported_feature_input/fake_feature_generator.c 
 	$(CC) -c $(CFLAGS) $(INCPATH) -o fake_feature_generator.o src/supported_feature_input/fake_feature_generator.c

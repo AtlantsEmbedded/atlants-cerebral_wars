@@ -13,7 +13,7 @@
 #include "feature_input.h"
 
 extern char task_running;
-
+extern char program_running;
 /**
  * ctrl_c_handler(int signal)
  * @brief Ctrl C signal handler
@@ -23,4 +23,5 @@ void ctrl_c_handler(int signal)
 {
 	fprintf(stdout, "Interrupt caught[NO: %d ]\n", signal);
 	task_running = 0x00;
+	program_running = 0x00;
 }
