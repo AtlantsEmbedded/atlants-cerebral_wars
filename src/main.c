@@ -91,6 +91,8 @@ int main(int argc, char *argv[])
 
 	/*Show program banner on stdout*/
 	print_banner();
+	/*setup gpios*/
+	setup_gpios();
 	
 	/*read the xml*/
 	app_config = xml_initialize(which_config(argc, argv));
